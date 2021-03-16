@@ -50,7 +50,8 @@ if __name__ == '__main__':
             'feedparser',
             'requests',
             'colorama',
-            'redis'
+            'redis',
+            'pika'
         ],
         package_data={},
         url='https://github.com/pyhashzero/pyhashzero',
