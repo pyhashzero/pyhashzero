@@ -1,1 +1,5 @@
 # PyHashZero
+
+[![License](https://img.shields.io/github/license/pyhashzero/pyhashzero)](https://github.com/pyhashzero/pyhashzero/blob/master/LICENSE)
+[![Python package](https://github.com/pyhashzero/pyhashzero/actions/workflows/python-package.yml/badge.svg)](https://github.com/pyhashzero/pyhashzero/actions/workflows/python-package.yml)
+[![Upload Python Package](https://github.com/pyhashzero/pyhashzero/actions/workflows/python-publish.yml/badge.svg)](https://github.com/pyhashzero/pyhashzero/actions/workflows/python-publish.yml)
