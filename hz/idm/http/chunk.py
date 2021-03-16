@@ -5,8 +5,8 @@ import time
 
 import pycurl
 
-from hz.idman.http.exception import WrongFormat
-from hz.idman.http.request import Request
+from hz.idm.http.exception import WrongFormat
+from hz.idm.http.request import Request
 
 
 class ChunkInfo:

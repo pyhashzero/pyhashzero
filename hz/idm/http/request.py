@@ -12,7 +12,7 @@ from urllib.parse import (
 
 import pycurl
 
-from hz.idman.http.exception import (
+from hz.idm.http.exception import (
     Abort,
     BadHeader
 )

@@ -8,11 +8,11 @@ from logging import (
 
 import pycurl
 
-from hz.idman.http.chunk import (
+from hz.idm.http.chunk import (
     Chunk,
     ChunkInfo
 )
-from hz.idman.http.exception import (
+from hz.idm.http.exception import (
     Abort,
     BadHeader
 )
