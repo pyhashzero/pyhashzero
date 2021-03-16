@@ -1,6 +1,6 @@
 site_name: PyHashZero Documentation
 theme: readthedocs
-docs_dir: docs/sources
+docs_dir: docs
 repo_url: https://github.com/pyhashzero/pyhashzero
 site_description: 'Documentation for PyHashZero.'
 
