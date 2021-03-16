@@ -44,7 +44,8 @@ if __name__ == '__main__':
             'torch',
             'six',
             'gym',
-            'pycurl'
+            'pycurl',
+            'pillow'
         ],
         package_data={},
         url='https://github.com/pyhashzero/pyhashzero',
