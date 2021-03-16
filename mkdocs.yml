@@ -1,0 +1,10 @@
+site_name: PyHashZero Documentation
+theme: readthedocs
+docs_dir: docs/sources
+repo_url: https://github.com/pyhashzero/pyhashzero
+site_description: 'Documentation for PyHashZero.'
+
+dev_addr: '0.0.0.0:8000'
+
+pages:
+  - Home: index.md
