@@ -1,9 +1,9 @@
+import copy
 import gc
-from copy import deepcopy
+import random
 
 import gym
 import numpy as np
-import torch
 import torch.nn as nn
 from PIL import Image
 
@@ -14,11 +14,21 @@ from hz.ai.callback import (
     TrainLogger,
     ValidationLogger
 )
-from hz.ai.env.sokoban import SokobanEnv
+from hz.ai.env.chess import (
+    Board,
+    create_move_labels,
+    Move
+)
 from hz.ai.memory import RingMemory
-from hz.ai.models import DDPGModel
-from hz.ai.random import OrnsteinUhlenbeck as RandomProcess
-from hz.ai.utility import easy_range
+from hz.ai.models import DQNModel
+from hz.ai.policy import (
+    EpsilonGreedyPolicy,
+    GreedyQPolicy
+)
+from hz.ai.utility import (
+    easy_range,
+    to_tensor
+)
 
 
 class RLProcessor:
@@ -56,9 +66,9 @@ class RLProcessor:
         return state
 
 
-class DDPGActor(nn.Module):
+class DQN(nn.Module):
     def __init__(self, in_features, out_features):
-        super(DDPGActor, self).__init__()
+        super(DQN, self).__init__()
 
         self.extractor = nn.Sequential(
             nn.Conv2d(in_channels=in_features, out_channels=32, kernel_size=(8, 8), stride=(4, 4)),
@@ -71,88 +81,63 @@ class DDPGActor(nn.Module):
             nn.BatchNorm2d(num_features=64),
             nn.ReLU(inplace=True)
         )
-
         self.predictor = nn.Sequential(
-            nn.Linear(in_features=7 * 7 * 64, out_features=200),
-            nn.BatchNorm1d(num_features=200),
+            nn.Linear(in_features=7 * 7 * 64, out_features=512),
+            nn.BatchNorm1d(num_features=512),
             nn.ReLU(inplace=True),
-            nn.Linear(in_features=200, out_features=200),
-            nn.BatchNorm1d(num_features=200),
-            nn.ReLU(inplace=True),
-            nn.Linear(in_features=200, out_features=out_features),
-            nn.Tanh()
+            nn.Linear(in_features=512, out_features=out_features),
+            nn.Softmax()
         )
 
     def forward(self, x):
         x = self.extractor(x)
-        return self.predictor(x.view(x.size(0), -1))
+        x = x.view(x.size(0), -1)
+        x = self.predictor(x)
+        return x
 
 
-class DDPGCritic(nn.Module):
-    def __init__(self, in_features, out_features):
-        super(DDPGCritic, self).__init__()
-
-        self.extractor = nn.Sequential(
-            nn.Conv2d(in_channels=in_features, out_channels=32, kernel_size=(8, 8), stride=(4, 4)),
-            nn.BatchNorm2d(num_features=32),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(in_channels=32, out_channels=64, kernel_size=(4, 4), stride=(2, 2)),
-            nn.BatchNorm2d(num_features=64),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(in_channels=64, out_channels=64, kernel_size=(3, 3), stride=(1, 1)),
-            nn.BatchNorm2d(num_features=64),
-            nn.ReLU(inplace=True)
-        )
-
-        self.relu = nn.ReLU(inplace=True)
-
-        self.linear1 = nn.Linear(in_features=7 * 7 * 64, out_features=200)
-        self.linear2 = nn.Linear(in_features=200 + out_features, out_features=200)
-        self.linear3 = nn.Linear(in_features=200, out_features=1)
-
-        self.bn1 = nn.BatchNorm1d(200)
-        self.bn2 = nn.BatchNorm1d(200)
-
-    def forward(self, x, y):
-        x = self.extractor(x)
-
-        x = self.relu(self.bn1(self.linear1(x.view(x.size(0), -1))))
-        x = torch.cat([x, y], dim=1)
-        x = self.relu(self.bn2(self.linear2(x)))
-        return self.linear3(x)
-
-
-class DDPGTrainer:
-    def __init__(self, environment, random_process, processor, memory, model, callbacks, her=False):
-        super(DDPGTrainer, self).__init__()
+class DQNTrainer:
+    def __init__(self, environment, memory, processor, model, callbacks, test_policy, train_policy, move_labels):
+        super(DQNTrainer, self).__init__()
 
         self.environment = environment
         self.memory = memory
         self.processor = processor
         self.model = model
         self.callbacks = callbacks
-        self.random_process = random_process
-        self.her = her
+        self.test_policy = test_policy
+        self.train_policy = train_policy
+        self.move_labels = move_labels
 
     def final_state(self):
-        if hasattr(self.environment, 'final_state'):
-            return self.processor.process_state(self.environment.final_state())
-        return None
+        pass
 
-    def get_action(self, state, goal_state):
-        if self.her:
-            action = self.model.predict(np.concatenate((state, goal_state), axis=2))
+    def get_step(self, action):
+        return Move.from_uci(self.move_labels[action])
+
+    def get_action(self, state, policy):
+        if policy.use_network():
+            action = self.model.predict(to_tensor(state))
+            action = self.move_labels[int(action)]
+            action = Move.from_uci(action)
         else:
-            action = self.model.predict(state)
-        action += self.random_process.sample()
+            if len(list(self.environment.generate_legal_moves())) == 0:
+                import cv2
+                cv2.waitKey()
 
-        return action
+            action = random.choice(list(self.environment.generate_legal_moves()))
 
-    def train(self, batch_size=32, max_action=50, max_episode=120, warmup=0, replay_interval=4, update_interval=1, test_interval=1000):
+        if not self.environment.is_legal(action):
+            action = random.choice(list(self.environment.generate_legal_moves()))
+            # action = MCTSGameController().get_next_move(self.environment, time_allowed=1)
+
+        return self.move_labels.index(action.str())
+
+    def train(self, batch_size=32, max_action=200, max_episode=12000, warmup=120000):
         total_steps = 0
         self.callbacks.on_agent_begin(**{
             'agent_headers': ['episode_number', 'action_number', 'episode_reward'],
-            'network_headers': ['actor_loss', 'critic_loss', 'critic_extra_loss']
+            'network_headers': ['loss']
         })
         for episode_number in easy_range(1, max_episode):
             episode_reward = 0
@@ -163,22 +148,19 @@ class DDPGTrainer:
                 'state': state
             })
 
-            goal_state = self.final_state()
-
             for action_number in easy_range(1, max_action):
-                action = self.get_action(state, goal_state)
+                action = self.get_action(state, self.train_policy)
                 self.callbacks.on_action_begin(**{
                     'episode_number': episode_number,
                     'action_number': action_number,
                     'state': state,
                     'action': action
                 })
-
-                if hasattr(self.environment, 'get_step'):
-                    step = self.environment.get_step(action, 'continuous')
-                else:
-                    step = action
+                step = self.get_step(action)
                 next_state, reward, terminal, _ = self.environment.step(step)
+                if not terminal:
+                    _, r, _, _ = self.environment.step(random.choice(list(self.environment.generate_legal_moves())))
+                    reward -= r
                 next_state = self.processor.process_state(next_state)
                 if action_number >= max_action:
                     terminal = True
@@ -193,27 +175,26 @@ class DDPGTrainer:
                     'next_state': next_state
                 })
 
-                processed_state = np.concatenate((state, goal_state), axis=2) if self.her else state
-                clipped_reward = np.clip(reward - 0.25, -1, 1)
-                processed_next_state = np.concatenate((next_state, goal_state), axis=2) if self.her else next_state
-                self.memory.remember(processed_state, action, clipped_reward, processed_next_state, terminal)
+                # clipped_reward = np.clip(reward - 0.25, -1, 1)
+                self.memory.remember((state, action, reward, next_state, terminal))
 
                 if total_steps > warmup:
-                    self.random_process.decay()
-                    if total_steps % replay_interval == 0:
+                    self.train_policy.decay()
+                    if total_steps % batch_size == 0:
                         self.callbacks.on_replay_begin()
                         mini_batch = self.memory.sample()
                         batch = self.processor.process_batch(mini_batch)
-                        loss = self.model.train(batch, ((total_steps - warmup) // replay_interval) % update_interval == 0)
+                        loss = self.model.train(batch)
+
                         self.callbacks.on_replay_end(**{
                             'loss': loss
                         })
 
                 episode_reward += reward
-                state = deepcopy(next_state)
+                state = copy.deepcopy(next_state)
                 total_steps += 1
 
-                if terminal:
+                if terminal or self.environment.is_game_over():
                     self.callbacks.on_episode_end(**{
                         'episode_number': episode_number,
                         'action_number': action_number,
@@ -239,10 +220,8 @@ class DDPGTrainer:
                 'state': state
             })
 
-            goal_state = self.final_state()
-
             for action_number in easy_range(1, max_action):
-                action = self.get_action(state, goal_state)
+                action = self.get_action(state, self.test_policy)
                 self.callbacks.on_action_begin(**{
                     'episode_number': episode_number,
                     'action_number': action_number,
@@ -250,10 +229,7 @@ class DDPGTrainer:
                     'action': action
                 })
 
-                if hasattr(self.environment, 'get_step'):
-                    step = self.environment.get_step(action, 'continuous')
-                else:
-                    step = action
+                step = self.get_step(action)
                 next_state, reward, terminal, _ = self.environment.step(step)
                 next_state = self.processor.process_state(next_state)
                 if action_number >= max_action:
@@ -270,7 +246,7 @@ class DDPGTrainer:
                 })
 
                 episode_reward += reward
-                state = deepcopy(next_state)
+                state = copy.deepcopy(next_state)
                 total_steps += 1
 
                 if terminal:
@@ -279,7 +255,6 @@ class DDPGTrainer:
                         'action_number': action_number,
                         'episode_reward': episode_reward
                     })
-
                     gc.collect()
                     break
 
@@ -291,62 +266,56 @@ class DDPGTrainer:
 
 def create_env():
     try:
-        environment = gym.make('Sokoban-Medium-v0', **{
-            'xmls': 'assets/sokoban/xmls/',
-            'sprites': 'assets/sokoban/sprites/'
-        })
+        environment = gym.make('Chess-v0')
     except Exception as ex:
         print(str(ex))
-        environment = SokobanEnv(**{
-            'xml': 'medium.xml',
-            'xmls': 'assets/sokoban/xmls/',
-            'sprites': 'assets/sokoban/sprites/'
-        })
+        environment = Board()
     return environment
 
 
 def run():
-    memory = RingMemory(buffer='big')
+    move_labels = create_move_labels()
+
+    memory = RingMemory(batch_size=32)
     processor = RLProcessor()
 
-    model = DDPGModel(tau=1e-3, actor=DDPGActor(in_features=3, out_features=2), critic=DDPGCritic(in_features=3, out_features=2))
+    model = DQNModel(network=DQN(in_features=3, out_features=len(move_labels)))
 
     experiment = '.'
     case = '.'
     run_name = 'test'
-    run_path = 'saves/02.ddpg/{}/{}/{}/'.format(experiment, case, run_name)
+    run_path = 'saves/01.dqn/{}/{}/{}/'.format(experiment, case, run_name)
 
-    random_process = RandomProcess(decay_steps=1200000)
     environment = create_env()
-    callbacks = CallbackList([
-        TrainLogger(run_path=run_path, interval=100),
-        Loader(model=model, run_path=run_path, interval=1000),
-        Renderer(environment=environment)
-    ])
-    agent = DDPGTrainer(
+    agent = DQNTrainer(
         environment=environment,
         memory=memory,
         processor=processor,
         model=model,
-        callbacks=callbacks,
-        random_process=random_process
+        callbacks=CallbackList([
+            TrainLogger(run_path=run_path, interval=10),
+            Loader(model=model, run_path=run_path, interval=10),
+            Renderer(environment=environment)
+        ]),
+        train_policy=EpsilonGreedyPolicy(min_value=0.1),
+        test_policy=GreedyQPolicy(),
+        move_labels=move_labels
     )
-    agent.train(max_action=200, max_episode=2, warmup=12, replay_interval=32)
+    agent.train(max_episode=12000, warmup=120000, max_action=200, batch_size=32)
 
-    random_process = RandomProcess(sigma=0.0, sigma_min=0.0, decay_steps=1200000)
     environment = create_env()
-    callbacks = CallbackList([
-        ValidationLogger(run_path=run_path, interval=1),
-        Loader(model=model, run_path=run_path, interval=1000),
-        Renderer(environment=environment),
-    ])
-    agent = DDPGTrainer(
+    agent = DQNTrainer(
         environment=environment,
         memory=memory,
         processor=processor,
         model=model,
-        callbacks=callbacks,
-        random_process=random_process
+        callbacks=CallbackList([
+            ValidationLogger(run_path=run_path, interval=1),
+            Renderer(environment=environment),
+        ]),
+        train_policy=EpsilonGreedyPolicy(min_value=0.1),
+        test_policy=GreedyQPolicy(),
+        move_labels=move_labels
     )
     agent.evaluate(max_action=200)
 

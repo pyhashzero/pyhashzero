@@ -9,26 +9,26 @@ import torch.nn as nn
 from numpy import linalg
 from PIL import Image
 
-from H0.ai.callback import (
+from hz.ai.callback import (
     CallbackList,
     Loader,
     Renderer,
     TrainLogger,
     ValidationLogger
 )
-from H0.ai.env.sokoban import (
+from hz.ai.env.sokoban import (
     draw_circle,
     draw_rectangle,
     draw_sprite,
     SokobanEnv
 )
-from H0.ai.memory import RingMemory
-from H0.ai.models import DQNModel
-from H0.ai.policy import (
+from hz.ai.memory import RingMemory
+from hz.ai.models import DQNModel
+from hz.ai.policy import (
     EpsilonGreedyPolicy as EGreedy,
     GreedyQPolicy as GreedyQ
 )
-from H0.ai.utility import easy_range
+from hz.ai.utility import easy_range
 
 
 class RLProcessor:
