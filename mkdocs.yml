@@ -4,8 +4,6 @@ docs_dir: docs
 repo_url: https://github.com/pyhashzero/pyhashzero
 site_description: 'Documentation for PyHashZero.'
 
-dev_addr: '0.0.0.0:8000'
-
 pages:
   - Home: index.md
   - Core: core.md
