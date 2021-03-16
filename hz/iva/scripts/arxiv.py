@@ -17,7 +17,7 @@ from hz.db.record.document import Document
 from hz.db.record.field import Field
 from hz.db.record.index import Index
 from hz.iva.task import BaseTask
-s
+
 root_url = 'http://export.arxiv.org/api/'
 
 
