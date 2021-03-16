@@ -1,0 +1,2 @@
+class CoreObject(object):
+    pass
