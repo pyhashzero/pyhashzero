@@ -1,1 +1,1 @@
-# pyhashzero
+# PyHashZero
