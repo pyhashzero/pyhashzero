@@ -7,18 +7,18 @@ import torch
 import torch.nn as nn
 from PIL import Image
 
-from H0.ai.callback import (
+from hz.ai.callback import (
     CallbackList,
     Loader,
     Renderer,
     TrainLogger,
     ValidationLogger
 )
-from H0.ai.env.sokoban import SokobanEnv
-from H0.ai.memory import RingMemory
-from H0.ai.models import DDPGModel
-from H0.ai.random import OrnsteinUhlenbeck as RandomProcess
-from H0.ai.utility import easy_range
+from hz.ai.env.sokoban import SokobanEnv
+from hz.ai.memory import RingMemory
+from hz.ai.models import DDPGModel
+from hz.ai.random import OrnsteinUhlenbeck as RandomProcess
+from hz.ai.utility import easy_range
 
 
 class RLProcessor:
