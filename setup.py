@@ -49,7 +49,8 @@ if __name__ == '__main__':
             'pymongo',
             'feedparser',
             'requests',
-            'colorama'
+            'colorama',
+            'redis'
         ],
         package_data={},
         url='https://github.com/pyhashzero/pyhashzero',
