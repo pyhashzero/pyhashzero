@@ -36,7 +36,14 @@ if __name__ == '__main__':
         long_description_content_type="text/markdown",
         packages=find_packages(),
         install_requires=[
-            'pytest'
+            'pytest',
+            'opencv-python',
+            'numpy',
+            'pygame',
+            'pymunk',
+            'torch',
+            'six',
+            'gym'
         ],
         package_data={},
         url='https://github.com/pyhashzero/pyhashzero',
