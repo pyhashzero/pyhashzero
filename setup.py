@@ -45,7 +45,8 @@ if __name__ == '__main__':
             'six',
             'gym',
             'pycurl',
-            'pillow'
+            'pillow',
+            'pymongo'
         ],
         package_data={},
         url='https://github.com/pyhashzero/pyhashzero',
