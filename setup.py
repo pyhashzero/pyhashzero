@@ -35,6 +35,11 @@ if __name__ == '__main__':
         long_description=long_description,
         long_description_content_type="text/markdown",
         packages=find_packages(),
+        entry_points={
+            'console_scripts': [
+                'iva = scripts.iva:main'
+            ]
+        },
         install_requires=[
             'pytest',
             'opencv-python',
