@@ -1,5 +1,5 @@
-from H0.nn.core import Tensor
-from H0.nn.functional import (
+from hz.ai.nn.core import Tensor
+from hz.ai.nn.functional import (
     abs,
     adam,
     add,
