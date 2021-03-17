@@ -346,7 +346,7 @@ def eye_like(tensor, requires_grad=False, device='cpu', dtype='float32') -> 'Ten
 
 
 def empty_like(tensor, requires_grad=False, device='cpu', dtype='float32') -> 'Tensor':
-    return empty(tensor.shapeh, requires_grad, device, dtype)
+    return empty(tensor.shape, requires_grad, device, dtype)
 
 
 def full_like(tensor, fill_value, requires_grad=False, device='cpu', dtype='float32') -> 'Tensor':
