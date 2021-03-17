@@ -850,6 +850,8 @@ def rnn_relu(inp, hx, all_weights, bias, num_layers, drop, training):
     def rnn_relu_backward(gradient):
         _inp_grads = engine.zeros_like(inp.data)
 
+        # for each layer need to create new gradient array
+        # from last layer to first layer
         for _layer in range(num_layers):
             _w_ih, _w_hh, _b_ih, _b_hh = all_weights[_layer]
 
@@ -878,14 +880,14 @@ def rnn_relu(inp, hx, all_weights, bias, num_layers, drop, training):
                 _b_ih_grads += engine.sum((_out * gradient.data[:, _time, :]), axis=0)
                 _b_hh_grads += engine.sum((_out * gradient.data[:, _time, :]), axis=0)
 
-                print(
-                    out.shape,
-                    gradient.shape,
-                    w_ih.shape,
-                    (_out * gradient.data[:, _time, :]).shape,
-                    engine.dot((_out * gradient.data[:, _time, :]), _w_ih.data).shape,
-                    _inp_grads[:, _time, :].shape
-                )
+                # print(
+                #     out.shape,
+                #     gradient.shape,
+                #     w_ih.shape,
+                #     (_out * gradient.data[:, _time, :]).shape,
+                #     engine.dot((_out * gradient.data[:, _time, :]), _w_ih.data).shape,
+                #     _inp_grads[:, _time, :].shape
+                # )
                 _inp_grads[:, _time, :] += engine.dot((_out * gradient.data[:, _time, :]), _w_ih.data)
 
             _set_grad(_w_ih, data=_w_ih_grads)
