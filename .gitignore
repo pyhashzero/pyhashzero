@@ -108,8 +108,6 @@ venv.bak/
 # pycharm files
 .idea
 
-/test_*.py
-
 *.json
 *.pkl
 *.pickle
