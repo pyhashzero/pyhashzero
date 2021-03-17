@@ -20,7 +20,7 @@ from ..core import (
 )
 
 
-# multilayer rnn grads does not work
+# multilayer and multitime rnn grads does not work
 class RNNBase(Module):
     __constants__ = ['mode', 'input_size', 'hidden_size', 'num_layers', 'bias', 'dropout']
 
