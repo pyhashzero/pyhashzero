@@ -22,7 +22,7 @@ install:
   - source activate test-environment
 
   - pip install pytest pytest-xdist pep8 pytest-pep8 pytest-cov coveralls
-  - pip install gym six numpy keras pandas Pillow pygame pymunk matplotlib tensorflow opencv-python
+  - pip install gym six numpy Pillow pygame pymunk opencv-python
   - python setup.py install
 script:
   - py.test --cov=.
