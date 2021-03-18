@@ -111,3 +111,4 @@ venv.bak/
 *.json
 *.pkl
 *.pickle
+test_*.py
