@@ -8,8 +8,6 @@ env:
 stages:
   - Lint check
   - Test
-#  - Docs
-#  - Deploy
 install:
   - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
   - bash miniconda.sh -b -p $HOME/miniconda
@@ -31,11 +29,3 @@ script:
 after_success:
   - coveralls
   - codecov
-jobs:
-  include:
-    - stage: Lint check
-      python: "3.7"
-      before_install: "skip"
-      install: pip install flake8
-      script: "skip"
-      after_success: "skip"
