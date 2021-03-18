@@ -86,18 +86,18 @@ dark_border_size = 3
 piece_size = 64
 
 PIECES = {
-    "b": pygame.transform.scale(pygame.image.load('assets/chess/black-bishop.png'), (SQUARE_SIZE, SQUARE_SIZE)),
-    "k": pygame.transform.scale(pygame.image.load('assets/chess/black-king.png'), (SQUARE_SIZE, SQUARE_SIZE)),
-    "n": pygame.transform.scale(pygame.image.load('assets/chess/black-knight.png'), (SQUARE_SIZE, SQUARE_SIZE)),
-    "p": pygame.transform.scale(pygame.image.load('assets/chess/black-pawn.png'), (SQUARE_SIZE, SQUARE_SIZE)),
-    "q": pygame.transform.scale(pygame.image.load('assets/chess/black-queen.png'), (SQUARE_SIZE, SQUARE_SIZE)),
-    "r": pygame.transform.scale(pygame.image.load('assets/chess/black-rook.png'), (SQUARE_SIZE, SQUARE_SIZE)),
-    "B": pygame.transform.scale(pygame.image.load('assets/chess/white-bishop.png'), (SQUARE_SIZE, SQUARE_SIZE)),
-    "K": pygame.transform.scale(pygame.image.load('assets/chess/white-king.png'), (SQUARE_SIZE, SQUARE_SIZE)),
-    "N": pygame.transform.scale(pygame.image.load('assets/chess/white-knight.png'), (SQUARE_SIZE, SQUARE_SIZE)),
-    "P": pygame.transform.scale(pygame.image.load('assets/chess/white-pawn.png'), (SQUARE_SIZE, SQUARE_SIZE)),
-    "Q": pygame.transform.scale(pygame.image.load('assets/chess/white-queen.png'), (SQUARE_SIZE, SQUARE_SIZE)),
-    "R": pygame.transform.scale(pygame.image.load('assets/chess/white-rook.png'), (SQUARE_SIZE, SQUARE_SIZE))
+    "b": pygame.transform.scale(pygame.image.load('env/assets/chess/black-bishop.png'), (SQUARE_SIZE, SQUARE_SIZE)),
+    "k": pygame.transform.scale(pygame.image.load('env/assets/chess/black-king.png'), (SQUARE_SIZE, SQUARE_SIZE)),
+    "n": pygame.transform.scale(pygame.image.load('env/assets/chess/black-knight.png'), (SQUARE_SIZE, SQUARE_SIZE)),
+    "p": pygame.transform.scale(pygame.image.load('env/assets/chess/black-pawn.png'), (SQUARE_SIZE, SQUARE_SIZE)),
+    "q": pygame.transform.scale(pygame.image.load('env/assets/chess/black-queen.png'), (SQUARE_SIZE, SQUARE_SIZE)),
+    "r": pygame.transform.scale(pygame.image.load('env/assets/chess/black-rook.png'), (SQUARE_SIZE, SQUARE_SIZE)),
+    "B": pygame.transform.scale(pygame.image.load('env/assets/chess/white-bishop.png'), (SQUARE_SIZE, SQUARE_SIZE)),
+    "K": pygame.transform.scale(pygame.image.load('env/assets/chess/white-king.png'), (SQUARE_SIZE, SQUARE_SIZE)),
+    "N": pygame.transform.scale(pygame.image.load('env/assets/chess/white-knight.png'), (SQUARE_SIZE, SQUARE_SIZE)),
+    "P": pygame.transform.scale(pygame.image.load('env/assets/chess/white-pawn.png'), (SQUARE_SIZE, SQUARE_SIZE)),
+    "Q": pygame.transform.scale(pygame.image.load('env/assets/chess/white-queen.png'), (SQUARE_SIZE, SQUARE_SIZE)),
+    "R": pygame.transform.scale(pygame.image.load('env/assets/chess/white-rook.png'), (SQUARE_SIZE, SQUARE_SIZE))
 }
 
 COORDS = {

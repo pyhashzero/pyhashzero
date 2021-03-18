@@ -16,12 +16,6 @@ from hz.ai.callback import (
     TrainLogger,
     ValidationLogger
 )
-from hz.ai.env.sokoban import (
-    draw_circle,
-    draw_rectangle,
-    draw_sprite,
-    SokobanEnv
-)
 from hz.ai.memory import RingMemory
 from hz.ai.models import DQNModel
 from hz.ai.policy import (
@@ -29,6 +23,12 @@ from hz.ai.policy import (
     GreedyQPolicy as GreedyQ
 )
 from hz.ai.utility import easy_range
+from hz.env.sokoban import (
+    draw_circle,
+    draw_rectangle,
+    draw_sprite,
+    SokobanEnv
+)
 
 
 class RLProcessor:
@@ -334,15 +334,15 @@ class DQNTrainer:
 def create_env():
     try:
         environment = gym.make('Sokoban-Medium-v0', **{
-            'xmls': 'assets/sokoban/xmls/',
-            'sprites': 'assets/sokoban/sprites/'
+            'xmls': 'env/assets/sokoban/xmls/',
+            'sprites': 'env/assets/sokoban/sprites/'
         })
     except Exception as ex:
         print(str(ex))
         environment = SokobanEnv(**{
             'xml': 'medium.xml',
-            'xmls': 'assets/sokoban/xmls/',
-            'sprites': 'assets/sokoban/sprites/'
+            'xmls': 'env/assets/sokoban/xmls/',
+            'sprites': 'env/assets/sokoban/sprites/'
         })
     return environment
 

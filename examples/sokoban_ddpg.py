@@ -14,11 +14,11 @@ from hz.ai.callback import (
     TrainLogger,
     ValidationLogger
 )
-from hz.ai.env.sokoban import SokobanEnv
 from hz.ai.memory import RingMemory
 from hz.ai.models import DDPGModel
 from hz.ai.random import OrnsteinUhlenbeck as RandomProcess
 from hz.ai.utility import easy_range
+from hz.env import SokobanEnv
 
 
 class RLProcessor:
@@ -292,21 +292,21 @@ class DDPGTrainer:
 def create_env():
     try:
         environment = gym.make('Sokoban-Medium-v0', **{
-            'xmls': 'assets/sokoban/xmls/',
-            'sprites': 'assets/sokoban/sprites/'
+            'xmls': 'env/assets/sokoban/xmls/',
+            'sprites': 'env/assets/sokoban/sprites/'
         })
     except Exception as ex:
         print(str(ex))
         environment = SokobanEnv(**{
             'xml': 'medium.xml',
-            'xmls': 'assets/sokoban/xmls/',
-            'sprites': 'assets/sokoban/sprites/'
+            'xmls': 'env/assets/sokoban/xmls/',
+            'sprites': 'env/assets/sokoban/sprites/'
         })
     return environment
 
 
 def run():
-    memory = RingMemory(buffer='big')
+    memory = RingMemory()
     processor = RLProcessor()
 
     model = DDPGModel(tau=1e-3, actor=DDPGActor(in_features=3, out_features=2), critic=DDPGCritic(in_features=3, out_features=2))

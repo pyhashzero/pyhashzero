@@ -10,7 +10,7 @@ register(
     entry_point='hzai.env.sokoban:SokobanEnv',
     kwargs={
         'xml': 'default.xml',
-        'xmls': 'assets/sokoban/xmls',
-        'sprites': 'assets/sokoban/sprites'
+        'xmls': 'env/assets/sokoban/xmls',
+        'sprites': 'env/assets/sokoban/sprites'
     }
 )
