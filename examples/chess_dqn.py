@@ -14,11 +14,6 @@ from hz.ai.callback import (
     TrainLogger,
     ValidationLogger
 )
-from hz.ai.env.chess import (
-    Board,
-    create_move_labels,
-    Move
-)
 from hz.ai.memory import RingMemory
 from hz.ai.models import DQNModel
 from hz.ai.policy import (
@@ -28,6 +23,11 @@ from hz.ai.policy import (
 from hz.ai.utility import (
     easy_range,
     to_tensor
+)
+from hz.env.chess import (
+    Board,
+    create_move_labels,
+    Move
 )
 
 

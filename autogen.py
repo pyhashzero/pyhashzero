@@ -25,10 +25,10 @@ from hz.ai.core import (
     CorePolicy,
     CoreRandom
 )
-from hz.ai.env.cube import CubeEnv
-from hz.ai.env.puzzle import Puzzle2048
-from hz.ai.env.sokoban import SokobanEnv
-from hz.ai.env.tiles import TilesEnv
+from hz.env import CubeEnv
+from hz.env import Puzzle2048
+from hz.env import SokobanEnv
+from hz.env import TilesEnv
 from hz.ai.memory import RingMemory
 from hz.ai.models.ddpg import DDPGModel
 from hz.ai.models.dqn import DQNModel

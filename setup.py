@@ -1,7 +1,4 @@
-from __future__ import (
-    print_function,
-    print_function
-)
+from __future__ import print_function
 
 import os
 import platform
@@ -10,8 +7,19 @@ from distutils.core import setup
 
 from setuptools import find_packages
 
+extras = {
+    'cache': ['redis'],
+    'db': ['pymongo'],
+    'idm': ['pycurl'],
+    'iva': ['feedparser', 'requests', 'colorama'],
+    'log': [],
+    'mq': ['pika'],
+    'sys': ['opencv-python', 'pillow', 'numpy']
+}
+extras['all'] = list(set([item for group in extras.values() for item in group]))
+
 if sys.version_info < (3,):
-    print("Python 2 has reached end-of-life and is no longer supported by H0.")
+    print("Python 2 has reached end-of-life and is no longer supported by pyhashzero.")
     sys.exit(-1)
 if sys.platform == 'win32' and sys.maxsize.bit_length() == 31:
     print("32-bit Windows Python runtime is not supported. Please switch to 64-bit Python.")
@@ -34,31 +42,31 @@ if __name__ == '__main__':
         description="General Purpose Python Library",
         long_description=long_description,
         long_description_content_type="text/markdown",
-        packages=find_packages(),
+        packages=[package for package in find_packages() if package.startswith('hz')],
         entry_points={
             'console_scripts': [
                 'iva = scripts.iva:main'
             ]
         },
         install_requires=[
-            'pytest',
             'opencv-python',
-            'numpy',
             'pygame',
             'pymunk',
-            'torch',
-            'six',
             'gym',
-            'pycurl',
-            'pillow',
-            'pymongo',
-            'feedparser',
-            'requests',
-            'colorama',
-            'redis',
-            'pika'
+            'numpy',
+            'torch',
+            'cupy',
+            'six'
         ],
-        package_data={},
+        extras_require=extras,
+        tests_require=['pytest', 'torch'],
+        package_data={
+            'hz': [
+                'env/chess/*.png',
+                'env/sokoban/sprites/*.png',
+                'env/sokoban/xmls/*.xml'
+            ]
+        },
         url='https://github.com/pyhashzero/pyhashzero',
         download_url='https://github.com/pyhashzero/pyhashzero/tags',
         author='Hamitcan Malkoç',
