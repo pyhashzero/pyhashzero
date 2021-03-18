@@ -1,4 +1,13 @@
 import math
+from functools import (
+    partial,
+    update_wrapper
+)
+from typing import (
+    List,
+    Tuple,
+    Union
+)
 
 from hz.ai.nn.core import Tensor
 from hz.ai.nn.utility import _calculate_output_dims
@@ -8,8 +17,13 @@ from hz.ai.nn.utility import _calculate_output_dims
 
 # should have c / c++ codes to use them in functional apis
 
+def wrapped_partial(func, *args, **kwargs):
+    partial_func = partial(func, *args, **kwargs)
+    update_wrapper(partial_func, func)
+    return partial_func
 
-def _check_tensor_devices(*tensors):
+
+def _check_tensor_devices(*tensors: Tensor):
     iterator = iter(tensors)
     try:
         first = next(iterator)
@@ -18,7 +32,7 @@ def _check_tensor_devices(*tensors):
     return all(first.device == x.device for x in iterator)
 
 
-def _check_tensors(*tensors):
+def _check_tensors(*tensors: Tensor):
     if not _check_tensor_devices(*tensors):
         raise ValueError('devices are not matching')
 
@@ -29,7 +43,7 @@ def _check_tensors(*tensors):
         raise ValueError('device has to be either \'cpu\' or \'gpu\'')
 
 
-def _get_engine(*tensors):
+def _get_engine(*tensors: Union[Tensor, str]):
     if (isinstance(tensors[0], Tensor) and tensors[0].device == 'gpu') or (isinstance(tensors[0], str) and tensors[0] == 'gpu'):
         import cupy as cp
         return cp
@@ -38,7 +52,7 @@ def _get_engine(*tensors):
     return np
 
 
-def _set_grad(tensor, data):
+def _set_grad(tensor: Tensor, data):
     if not (tensor.requires_grad and not hasattr(tensor, "retains_grad") and not tensor.is_leaf):
         if not tensor.is_leaf:
             return
@@ -50,7 +64,7 @@ def _set_grad(tensor, data):
     tensor.backward(data)
 
 
-def _create_tensor(*tensors, data, func):
+def _create_tensor(*tensors: Tensor, data, func):
     requires_grad = any(map(lambda x: x.requires_grad, tensors))
     grad_fn = None
     if requires_grad:
@@ -67,70 +81,474 @@ def is_tensor(obj: object) -> bool:
     return isinstance(obj, Tensor)
 
 
-def concat(*tensors, axis=0) -> 'Tensor':
+def concat_backward(gradient: Tensor, tensors: List[Tensor], axis: int = 0):
     _check_tensors(*tensors)
     engine = _get_engine(*tensors)
 
-    def concat_backward(gradient):
-        grad_arrays = engine.split(gradient.data, len(tensors), axis=axis)
-        for idx, tensor in enumerate(tensors):
-            _set_grad(tensor, data=grad_arrays[idx] * engine.ones_like(tensor.data))
-
-    return _create_tensor(*tensors, data=engine.concatenate(list(map(lambda x: x.data, tensors)), axis=axis), func=concat_backward)
+    grad_arrays = engine.split(gradient.data, len(tensors), axis=axis)
+    for idx, tensor in enumerate(tensors):
+        _set_grad(tensor, data=grad_arrays[idx] * engine.ones_like(tensor.data))
 
 
-def stack(*tensors, axis=0) -> 'Tensor':
+def stack_backward(gradient: Tensor, tensors: List[Tensor], axis: int = 0):
     _check_tensors(*tensors)
     engine = _get_engine(*tensors)
 
-    def stack_backward(gradient):
-        grad_arrays = engine.split(gradient.data, len(tensors), axis=axis)
-        for idx, tensor in enumerate(tensors):
-            _set_grad(tensor, data=grad_arrays[idx] * engine.ones_like(tensor.data))
-
-    return _create_tensor(*tensors, data=engine.stack(list(map(lambda x: x.data, tensors)), axis=axis), func=stack_backward)
+    grad_arrays = engine.split(gradient.data, len(tensors), axis=axis)
+    for idx, tensor in enumerate(tensors):
+        _set_grad(tensor, data=grad_arrays[idx] * engine.ones_like(tensor.data))
 
 
-def chunk(tensor, chunks, dim=0):
+def chunk_backward(gradient: Tensor, tensor: Tensor, chunks: int):
     _check_tensors(tensor)
     engine = _get_engine(tensor)
 
-    def chunk_backward(gradient):
-        _set_grad(tensor, gradient.data * engine.ones_like(tensor.data) / chunks)
+    _set_grad(tensor, gradient.data * engine.ones_like(tensor.data) / chunks)
+
+
+def view_backward(gradient: Tensor, inp: Tensor):
+    _check_tensors(inp)
+
+    _set_grad(inp, gradient.data.reshape(inp.shape))
+
+
+def index_select_backward(gradient: Tensor, inp: Tensor, index: Tensor, dim: int):
+    _check_tensors(inp)
+    engine = _get_engine(inp)
+
+    unique, counts = engine.unique(index.data.astype('int'), return_counts=True)
+    count_dict = dict(zip(unique, counts))
+
+    index_array = engine.asarray([val for val in range(inp.size(dim))]).astype('int')
+    count_array = engine.asarray([count_dict.get(val, 0) for val in range(inp.size(dim))])
+
+    grad_array = engine.zeros_like(gradient.data)
+    engine.put_along_axis(grad_array, index_array, count_array, axis=dim)
+    _set_grad(inp, data=grad_array)
+
+
+def squeeze_backward(gradient: Tensor, inp: Tensor):
+    _check_tensors(inp)
+    engine = _get_engine(inp)
+
+    _set_grad(inp, gradient.data * engine.ones_like(inp.data))
+
+
+def expand_dim_backward(gradient: Tensor, inp: Tensor):
+    _check_tensors(inp)
+    engine = _get_engine(inp)
+
+    _set_grad(inp, gradient.data * engine.ones_like(inp.data))
+
+
+def transpose_backward(gradient: Tensor, inp: Tensor):
+    _check_tensors(inp)
+    engine = _get_engine(inp)
+
+    _set_grad(inp, gradient.data * engine.ones_like(inp.data))
+
+
+def absolute_backward(gradient: Tensor, inp: Tensor):
+    _check_tensors(inp)
+    engine = _get_engine(inp)
+
+    _set_grad(inp, gradient.data * engine.ones_like(inp.data))
+
+
+def around_backward(gradient: Tensor, inp: Tensor):
+    _check_tensors(inp)
+    engine = _get_engine(inp)
+
+    _set_grad(inp, gradient.data * engine.ones_like(inp.data))
+
+
+def floor_backward(gradient: Tensor, inp: Tensor):
+    _check_tensors(inp)
+    engine = _get_engine(inp)
+
+    _set_grad(inp, gradient.data * engine.ones_like(inp.data))
+
+
+def ceil_backward(gradient: Tensor, inp: Tensor):
+    _check_tensors(inp)
+    engine = _get_engine(inp)
+
+    _set_grad(inp, gradient.data * engine.ones_like(inp.data))
+
+
+def clip_backward(gradient: Tensor, inp: Tensor):
+    _check_tensors(inp)
+    engine = _get_engine(inp)
+
+    _set_grad(inp, gradient.data * engine.ones_like(inp.data))
+
+
+def negative_backward(gradient: Tensor, inp: Tensor):
+    _check_tensors(inp)
+    engine = _get_engine(inp)
+
+    _set_grad(inp, gradient.data * engine.ones_like(inp.data))
+
+
+def summation_backward(gradient: Tensor, inp: Tensor):
+    _check_tensors(inp)
+    engine = _get_engine(inp)
+
+    _set_grad(inp, gradient.data * engine.ones_like(inp.data))
+
+
+def mean_backward(gradient: Tensor, inp: Tensor):
+    _check_tensors(inp)
+    engine = _get_engine(inp)
+
+    _set_grad(inp, gradient.data * engine.ones_like(inp.data))
+
+
+def std_backward(gradient: Tensor, inp: Tensor):
+    _check_tensors(inp)
+    engine = _get_engine(inp)
+
+    _set_grad(inp, gradient.data * engine.ones_like(inp.data))
+
+
+def var_backward(gradient: Tensor, inp: Tensor):
+    _check_tensors(inp)
+    engine = _get_engine(inp)
+
+    _set_grad(inp, gradient.data * engine.ones_like(inp.data))
+
+
+def add_backward(gradient: Tensor, inp1: Tensor, inp2: Tensor):
+    _check_tensors(inp1, inp2)
+    engine = _get_engine(inp1, inp2)
+
+    _set_grad(inp1, gradient.data * engine.ones_like(inp1.data))
+    _set_grad(inp2, gradient.data * engine.ones_like(inp2.data))
+
+
+def sub_backward(gradient: Tensor, inp1: Tensor, inp2: Tensor):
+    _check_tensors(inp1, inp2)
+    engine = _get_engine(inp1, inp2)
+
+    _set_grad(inp1, gradient.data * engine.ones_like(inp1.data))
+    _set_grad(inp2, gradient.data * -engine.ones_like(inp2.data))
+
+
+def mul_backward(gradient: Tensor, inp1: Tensor, inp2: Tensor):
+    _check_tensors(inp1, inp2)
+
+    _set_grad(inp1, gradient.data * inp2.data)
+    _set_grad(inp2, gradient.data * inp1.data)
+
+
+def div_backward(gradient: Tensor, inp1: Tensor, inp2: Tensor):
+    _check_tensors(inp1, inp2)
+
+    _set_grad(inp1, gradient.data * (1 / inp2.data))
+    _set_grad(inp2, gradient.data * inp1.data)
+
+
+def power_backward(gradient: Tensor, inp: Tensor, p: int):
+    _check_tensors(inp)
+
+    _set_grad(inp, gradient.data * p * (inp.data ** (p - 1)))
+
+
+def clone_backward(gradient: Tensor, inp: Tensor):
+    _check_tensors(inp)
+    engine = _get_engine(inp)
+
+    _set_grad(inp, gradient.data * engine.ones_like(inp.data))
+
+
+def relu_backward(gradient: Tensor, inp: Tensor):
+    _check_tensors(inp)
+    engine = _get_engine(inp)
+
+    out = engine.zeros_like(inp.data)
+    out[inp.data <= 0] = 0
+    out[inp.data > 0] = 1
+
+    _set_grad(inp, gradient.data * out)
+
+
+def sigmoid_backward(gradient: Tensor, inp: Tensor, out):
+    _check_tensors(inp)
+
+    _set_grad(inp, gradient.data * out * (1 - out))
+
+
+def softmax_backward(gradient: Tensor, inp: Tensor):
+    _check_tensors(inp)
+    engine = _get_engine(inp)
+
+    grad_array = gradient.data
+
+    indices = engine.where(grad_array == grad_array.max())
+
+    arr = -grad_array * grad_array
+    arr[indices] = grad_array[indices] * (1 - grad_array[indices])
+
+    _set_grad(inp, arr)
+
+
+def tanh_backward(gradient: Tensor, inp: Tensor, out: Tensor):
+    _check_tensors(inp)
+    engine = _get_engine(inp)
+
+    _set_grad(inp, gradient.data * (1 - engine.square(out)))
+
+
+def dense_backward(gradient: Tensor, inp: Tensor, weight: Tensor, bias: Tensor):
+    _check_tensors(inp, weight, bias)
+    engine = _get_engine(inp, weight, bias)
+
+    _set_grad(inp, engine.dot(gradient.data, weight.data))
+    _set_grad(weight, engine.dot(gradient.data.T, inp.data))
+    _set_grad(bias, engine.sum(gradient.data, axis=0, keepdims=True))
+
+
+def conv_backward(gradient: Tensor, inp: Tensor, weight: Tensor, bias: Tensor, stride: int, padding: Union[List[int], Tuple[int]]):
+    _check_tensors(inp, weight, bias)
+    engine = _get_engine(inp, weight, bias)
+
+    _padded_input_array = engine.pad(array=inp.data, pad_width=((0, 0), (0, 0), (padding[0], padding[0]), (padding[1], padding[1])), mode='constant')
+    _weight_array = weight.data
+    _grad_array = gradient.data
+
+    _, _, _input_height, input_width = inp.shape
+    _, _, _kernel_height, _kernel_width = _weight_array.shape
+    _, _, _output_height, _output_width = _grad_array.shape
+    _output_array = engine.zeros_like(_padded_input_array)
+
+    _weight_grad = engine.zeros_like(_weight_array)
+    _bias_grad = _grad_array.sum(axis=(0, 2, 3))
+
+    for _row in range(_output_height):
+        for _column in range(_output_width):
+            _output_array[:, :, _row * stride:_row * stride + _kernel_height, _column * stride:_column * stride + _kernel_width] += engine.sum(
+                _weight_array[engine.newaxis, :, :, :, :] *
+                _grad_array[:, :, engine.newaxis, _row:_row + 1, _column:_column + 1],
+                axis=1
+            )
+            _weight_grad += engine.sum(
+                _padded_input_array[:, engine.newaxis, :, _row * stride:_row * stride + _kernel_height, _column * stride:_column * stride + _kernel_width] *
+                _grad_array[:, :, engine.newaxis, _row:_row + 1, _column:_column + 1],
+                axis=0
+            )
+
+    _set_grad(inp, _weight_grad)
+    _set_grad(weight, _bias_grad)
+    _set_grad(bias, _output_array[:, :, padding[0]:padding[0] + _input_height, padding[1]:padding[1] + input_width])
+
+
+def dropout_backward(gradient: Tensor, inp: Tensor, mask, keep_prob: float):
+    _check_tensors(inp)
+    engine = _get_engine(inp)
+
+    def apply_mask(array) -> engine.array:
+        array *= mask
+        array /= keep_prob
+        return array
+
+    _set_grad(inp, apply_mask(gradient))
+
+
+def batch_norm_backward(gradient: Tensor, inp: Tensor, weight: Tensor, bias: Tensor, training: bool, **kwargs):
+    _check_tensors(inp)
+    engine = _get_engine(inp)
+
+    if training:
+        batch_size = inp.data.shape[0]
+        weight_by_grad = weight.data * gradient.data
+        dxc = weight_by_grad / kwargs['input_standard_deviation']
+        dstd = -engine.sum(
+            (weight_by_grad * kwargs['input_mean_difference']) / (kwargs['input_standard_deviation'] * kwargs['input_standard_deviation']),
+            axis=0
+        )
+        dvar = 0.5 * dstd / kwargs['input_standard_deviation']
+        dxc += (2.0 / batch_size) * kwargs['input_mean_difference'] * dvar
+        dmu = engine.sum(dxc, axis=0)
+
+        _set_grad(inp, dxc - dmu / batch_size)
+        _set_grad(weight, engine.sum(kwargs['input_mean_over_input_standard_deviation'] * gradient.data, axis=0))
+        _set_grad(bias, gradient.data.sum(axis=0))
+    else:
+        weight_by_grad = weight.data * gradient.data
+
+        _set_grad(inp, weight_by_grad / kwargs['input_standard_deviation'])
+        _set_grad(weight, engine.sum(kwargs['input_mean_over_input_standard_deviation'] * gradient.data, axis=0))
+        _set_grad(bias, gradient.data.sum(axis=0))
+
+
+def max_pool_backward(gradient: Tensor, inp: Tensor, kernel_size: Union[List[int], Tuple[int]], stride: int, padding: Union[List[int], Tuple[int]], cache: dict):
+    _check_tensors(inp)
+    engine = _get_engine(inp)
+
+    grad_array = gradient.data
+
+    _, _, _output_height, _output_width = grad_array.shape
+    _kernel_height, _kernel_width = kernel_size
+
+    _padded_input_array = engine.pad(array=inp.data, pad_width=((0, 0), (0, 0), (padding[0], padding[0]), (padding[1], padding[1])), mode='constant')
+    _output_array = engine.zeros_like(_padded_input_array)
+
+    for _row in range(_output_height):
+        for _column in range(_output_width):
+            increment = grad_array[:, :, _row:_row + 1, _column:_column + 1] * cache[(_row, _column)]
+            _output_array[:, :, _row * stride:_row * stride + _kernel_height, _column * stride:_column * stride + _kernel_width] += increment
+
+    _set_grad(inp, _output_array[:, :, padding[0]:padding[0] + _output_height - 1, padding[1]:padding[1] + _output_width - 1])
+
+
+def avg_pool_backward(gradient: Tensor, inp: Tensor, kernel_size: Union[List[int], Tuple[int]], stride: int, padding: Union[List[int], Tuple[int]]):
+    _check_tensors(inp)
+    engine = _get_engine(inp)
+
+    grad_array = gradient.data
+
+    _, _, _output_height, _output_width = grad_array.shape
+    _kernel_height, _kernel_width = kernel_size
+
+    _padded_input_array = engine.pad(array=inp.data, pad_width=((0, 0), (0, 0), (padding[0], padding[0]), (padding[1], padding[1])), mode='constant')
+    _output_array = engine.zeros_like(_padded_input_array)
+
+    for _row in range(_output_height):
+        for _column in range(_output_width):
+            increment = grad_array[:, :, _row:_row + 1, _column:_column + 1] / _kernel_height / _kernel_width
+            _output_array[:, :, _row * stride:_row * stride + _kernel_height, _column * stride:_column * stride + _kernel_width] += increment
+
+    _set_grad(inp, _output_array[:, :, padding[0]:padding[0] + _output_height - 1, padding[1]:padding[1] + _output_width - 1])
+
+
+def rnn_relu_backward(gradient: Tensor, inp: Tensor, all_weights: List[Union[List[Tensor], Tuple[Tensor]]], num_layers: int, intermediate_values: dict):
+    _check_tensors(inp)
+    engine = _get_engine(inp)
+
+    _inp_grads = engine.zeros_like(inp.data)
+
+    # for each layer need to create new gradient array
+    # from last layer to first layer
+    for _layer in range(num_layers):
+        _w_ih, _w_hh, _b_ih, _b_hh = all_weights[_layer]
+
+        _w_ih_grads = engine.zeros_like(_w_ih.data)
+        _w_hh_grads = engine.zeros_like(_w_hh.data)
+        _b_ih_grads = engine.zeros_like(_b_ih.data)
+        _b_hh_grads = engine.zeros_like(_b_hh.data)
+
+        for _time in range(inp.size(1) - 1, -1, -1):
+            _prev_h = intermediate_values[_time][_layer]['prev_h']
+            _current_h = intermediate_values[_time][_layer]['current_h']
+            _inp = intermediate_values[_time][_layer]['input']
+            _relu_input = intermediate_values[_time][_layer]['relu_input']
+
+            _w_ih_power = engine.power(_w_ih.data, inp.size(1) - _time - 1)
+            _w_hh_power = engine.power(_w_hh.data, inp.size(1) - _time - 1)
+
+            _out = engine.zeros_like(_relu_input.data)
+            _out[_relu_input.data <= 0] = 0
+            _out[_relu_input.data > 0] = 1
+
+            _w_ih_grads += engine.dot((_out * gradient.data[:, _time, :]).T, _inp.data) * _w_ih_power
+            _w_hh_grads += engine.dot((_out * gradient.data[:, _time, :]).T, _prev_h.data) * _w_hh_power
+            _b_ih_grads += engine.sum((_out * gradient.data[:, _time, :]), axis=0)
+            _b_hh_grads += engine.sum((_out * gradient.data[:, _time, :]), axis=0)
+
+            _inp_grads[:, _time, :] += engine.dot((_out * gradient.data[:, _time, :]), _w_ih.data)
+
+        _set_grad(_w_ih, data=_w_ih_grads)
+        _set_grad(_w_hh, data=_w_hh_grads)
+        _set_grad(_b_ih, data=_b_ih_grads)
+        _set_grad(_b_hh, data=_b_hh_grads)
+    _set_grad(inp, data=_inp_grads)
+
+
+def rnn_tanh_backward(gradient, inp, hx, all_weights, bias, num_layers):
+    ...
+
+
+def lstm_backward(gradient, inp, hx, all_weights, bias, num_layers):
+    ...
+
+
+def gru_backward(gradient, inp, hx, all_weights, bias, num_layers):
+    ...
+
+
+def rnn_relu_cell_backward(gradient, inp, h, w_ih, w_hh, b_ih=None, b_hh=None):
+    ...
+
+
+def rnn_tanh_cell_backward(gradient, inp, h, w_ih, w_hh, b_ih=None, b_hh=None):
+    ...
+
+
+def lstm_cell_backward(gradient, inp, h, w_ih, w_hh, b_ih=None, b_hh=None):
+    ...
+
+
+def gru_cell_backward(gradient):
+    ...
+
+
+def concat(tensors: List[Tensor], axis: int = 0) -> 'Tensor':
+    _check_tensors(*tensors)
+    engine = _get_engine(*tensors)
+
+    return _create_tensor(
+        *tensors,
+        data=engine.concatenate(list(map(lambda x: x.data, tensors)), axis=axis),
+        func=wrapped_partial(concat_backward, tensors=tensors, axis=axis)
+    )
+
+
+def stack(tensors: List[Tensor], axis: int = 0) -> 'Tensor':
+    _check_tensors(*tensors)
+    engine = _get_engine(*tensors)
+
+    return _create_tensor(
+        *tensors,
+        data=engine.stack(list(map(lambda x: x.data, tensors)), axis=axis),
+        func=wrapped_partial(stack_backward, tensors=tensors, axis=axis)
+    )
+
+
+def chunk(tensor: Tensor, chunks: int, dim: int = 0):
+    _check_tensors(tensor)
+    engine = _get_engine(tensor)
 
     arrays = engine.split(tensor.data, chunks, dim)
 
     tensors = []
     for array in arrays:
-        tensors.append(_create_tensor(tensor, data=array, func=chunk_backward))
+        tensors.append(_create_tensor(
+            tensor,
+            data=array,
+            func=wrapped_partial(chunk_backward, tensor=tensor, chunks=chunks)
+        ))
     return tensors
 
 
 def view(inp, size=None) -> 'Tensor':
     _check_tensors(inp)
 
-    def view_backward(gradient):
-        _set_grad(inp, gradient.data.reshape(inp.shape))
-
-    return _create_tensor(inp, data=inp.data.reshape(size), func=view_backward)
+    return _create_tensor(
+        inp,
+        data=inp.data.reshape(size),
+        func=wrapped_partial(view_backward, inp)
+    )
 
 
 def index_select(inp, dim, index) -> 'Tensor':
     _check_tensors(inp)
     engine = _get_engine(inp)
 
-    def index_select_backward(gradient):
-        unique, counts = engine.unique(index.data.astype('int'), return_counts=True)
-        count_dict = dict(zip(unique, counts))
-
-        index_array = engine.asarray([val for val in range(inp.size(dim))]).astype('int')
-        count_array = engine.asarray([count_dict.get(val, 0) for val in range(inp.size(dim))])
-
-        grad_array = engine.zeros_like(gradient.data)
-        engine.put_along_axis(grad_array, index_array, count_array, axis=dim)
-        _set_grad(inp, data=grad_array)
-
-    return _create_tensor(inp, data=engine.take_along_axis(inp.data, index.data.astype('int'), dim), func=index_select_backward)
+    return _create_tensor(
+        inp,
+        data=engine.take_along_axis(inp.data, index.data.astype('int'), dim),
+        func=wrapped_partial(index_select_backward, inp=inp, index=index, dim=dim)
+    )
 
 
 def zero(inp) -> 'Tensor':
@@ -160,130 +578,143 @@ def squeeze(inp, axis=None) -> 'Tensor':
     _check_tensors(inp)
     engine = _get_engine(inp)
 
-    def squeeze_backward(gradient):
-        _set_grad(inp, gradient.data * engine.ones_like(inp.data))
-
-    return _create_tensor(inp, data=engine.squeeze(inp.data, axis=axis), func=squeeze_backward)
+    return _create_tensor(
+        inp,
+        data=engine.squeeze(inp.data, axis=axis),
+        func=wrapped_partial(squeeze_backward, inp=inp)
+    )
 
 
 def expand_dim(inp, axis=None) -> 'Tensor':
     _check_tensors(inp)
     engine = _get_engine(inp)
 
-    def expand_dim_backward(gradient):
-        _set_grad(inp, gradient.data * engine.ones_like(inp.data))
-
-    return _create_tensor(inp, data=engine.expand_dims(inp.data, axis=axis), func=expand_dim_backward)
+    return _create_tensor(
+        inp,
+        data=engine.expand_dims(inp.data, axis=axis),
+        func=wrapped_partial(expand_dim_backward, inp=inp)
+    )
 
 
 def transpose(inp, axes=None) -> 'Tensor':
     _check_tensors(inp)
     engine = _get_engine(inp)
 
-    def transpose_backward(gradient):
-        _set_grad(inp, gradient.data * engine.ones_like(inp.data))
-
-    return _create_tensor(inp, data=engine.transpose(inp.data, axes=axes), func=transpose_backward)
+    return _create_tensor(
+        inp,
+        data=engine.transpose(inp.data, axes=axes),
+        func=wrapped_partial(transpose_backward, inp=inp)
+    )
 
 
 def absolute(inp) -> 'Tensor':
     _check_tensors(inp)
     engine = _get_engine(inp)
 
-    def abs_backward(gradient):
-        _set_grad(inp, gradient.data * engine.ones_like(inp.data))
-
-    return _create_tensor(inp, data=engine.abs(inp.data), func=abs_backward)
+    return _create_tensor(
+        inp,
+        data=engine.abs(inp.data),
+        func=wrapped_partial(absolute_backward, inp=inp)
+    )
 
 
 def around(inp) -> 'Tensor':
     _check_tensors(inp)
     engine = _get_engine(inp)
 
-    def round_backward(gradient):
-        _set_grad(inp, gradient.data * engine.ones_like(inp.data))
-
-    return _create_tensor(inp, data=engine.around(inp.data), func=round_backward)
+    return _create_tensor(
+        inp,
+        data=engine.around(inp.data),
+        func=wrapped_partial(around_backward, inp=inp)
+    )
 
 
 def floor(inp) -> 'Tensor':
     _check_tensors(inp)
     engine = _get_engine(inp)
 
-    def floor_backward(gradient):
-        _set_grad(inp, gradient.data * engine.ones_like(inp.data))
-
-    return _create_tensor(inp, data=engine.floor(inp.data), func=floor_backward)
+    return _create_tensor(
+        inp,
+        data=engine.floor(inp.data),
+        func=wrapped_partial(floor_backward, inp=inp)
+    )
 
 
 def ceil(inp) -> 'Tensor':
     _check_tensors(inp)
     engine = _get_engine(inp)
 
-    def ceil_backward(gradient):
-        _set_grad(inp, gradient.data * engine.ones_like(inp.data))
-
-    return _create_tensor(inp, data=engine.ceil(inp.data), func=ceil_backward)
+    return _create_tensor(
+        inp,
+        data=engine.ceil(inp.data),
+        func=wrapped_partial(ceil_backward, inp=inp)
+    )
 
 
 def clip(inp, min_val, max_val) -> 'Tensor':
     _check_tensors(inp)
     engine = _get_engine(inp)
 
-    def clip_backward(gradient):
-        _set_grad(inp, gradient.data * engine.ones_like(inp.data))
-
-    return _create_tensor(inp, data=engine.clip(inp.data, min_val, max_val), func=clip_backward)
+    return _create_tensor(
+        inp,
+        data=engine.clip(inp.data, min_val, max_val),
+        func=wrapped_partial(clip_backward, inp=inp)
+    )
 
 
 def negative(inp) -> 'Tensor':
     _check_tensors(inp)
     engine = _get_engine(inp)
 
-    def negative_backward(gradient):
-        _set_grad(inp, gradient.data * engine.ones_like(inp.data))
-
-    return _create_tensor(inp, data=engine.negative(inp.data), func=negative_backward)
+    return _create_tensor(
+        inp,
+        data=engine.negative(inp.data),
+        func=wrapped_partial(negative_backward, inp=inp)
+    )
 
 
 def summation(inp) -> 'Tensor':
     _check_tensors(inp)
     engine = _get_engine(inp)
 
-    def summation_backward(gradient):
-        _set_grad(inp, gradient.data * engine.ones_like(inp.data))
-
-    return _create_tensor(inp, data=engine.sum(inp.data), func=summation_backward)
+    return _create_tensor(
+        inp,
+        data=engine.sum(inp.data),
+        func=wrapped_partial(summation_backward, inp=inp)
+    )
 
 
 def mean(inp) -> 'Tensor':
     _check_tensors(inp)
     engine = _get_engine(inp)
 
-    def mean_backward(gradient):
-        _set_grad(inp, gradient.data * engine.ones_like(inp.data))
-
-    return _create_tensor(inp, data=engine.mean(inp.data), func=mean_backward)
+    return _create_tensor(
+        inp,
+        data=engine.mean(inp.data),
+        func=wrapped_partial(mean_backward, inp=inp)
+    )
 
 
 def std(inp) -> 'Tensor':
     _check_tensors(inp)
     engine = _get_engine(inp)
 
-    def standard_deviation_backward(gradient):
-        _set_grad(inp, gradient.data * engine.ones_like(inp.data))
-
-    return _create_tensor(inp, data=engine.std(inp.data), func=standard_deviation_backward)
+    return _create_tensor(
+        inp,
+        data=engine.std(inp.data),
+        func=wrapped_partial(std_backward, inp=inp)
+    )
 
 
 def var(inp) -> 'Tensor':
     _check_tensors(inp)
     engine = _get_engine(inp)
 
-    def variance_backward(gradient):
-        _set_grad(inp, gradient.data * engine.ones_like(inp.data))
-
-    return _create_tensor(inp, data=engine.var(inp.data), func=variance_backward)
+    return _create_tensor(
+        inp,
+        data=engine.var(inp.data),
+        func=wrapped_partial(var_backward, inp=inp)
+    )
 
 
 def add(inp1, inp2) -> 'Tensor':
@@ -291,13 +722,13 @@ def add(inp1, inp2) -> 'Tensor':
         inp2 = from_array(inp2, device=inp1.device)
 
     _check_tensors(inp1, inp2)
-    engine = _get_engine(inp1, inp2)
 
-    def add_backward(gradient):
-        _set_grad(inp1, gradient.data * engine.ones_like(inp1.data))
-        _set_grad(inp2, gradient.data * engine.ones_like(inp2.data))
-
-    return _create_tensor(inp1, inp2, data=inp1.data + inp2.data, func=add_backward)
+    return _create_tensor(
+        inp1,
+        inp2,
+        data=inp1.data + inp2.data,
+        func=wrapped_partial(add_backward, inp1=inp1, inp2=inp2)
+    )
 
 
 def sub(inp1, inp2) -> 'Tensor':
@@ -305,13 +736,13 @@ def sub(inp1, inp2) -> 'Tensor':
         inp2 = from_array(inp2, device=inp1.device)
 
     _check_tensors(inp1, inp2)
-    engine = _get_engine(inp1, inp2)
 
-    def sub_backward(gradient):
-        _set_grad(inp1, gradient.data * engine.ones_like(inp1.data))
-        _set_grad(inp2, gradient.data * -engine.ones_like(inp2.data))
-
-    return _create_tensor(inp1, inp2, data=inp1.data - inp2.data, func=sub_backward)
+    return _create_tensor(
+        inp1,
+        inp2,
+        data=inp1.data - inp2.data,
+        func=wrapped_partial(sub_backward, inp1=inp1, inp2=inp2)
+    )
 
 
 def mul(inp1, inp2) -> 'Tensor':
@@ -320,11 +751,12 @@ def mul(inp1, inp2) -> 'Tensor':
 
     _check_tensors(inp1, inp2)
 
-    def mul_backward(gradient):
-        _set_grad(inp1, gradient.data * inp2.data)
-        _set_grad(inp2, gradient.data * inp1.data)
-
-    return _create_tensor(inp1, inp2, data=inp1.data * inp2.data, func=mul_backward)
+    return _create_tensor(
+        inp1,
+        inp2,
+        data=inp1.data * inp2.data,
+        func=wrapped_partial(mul_backward, inp1=inp1, inp2=inp2)
+    )
 
 
 def div(inp1, inp2) -> 'Tensor':
@@ -333,11 +765,12 @@ def div(inp1, inp2) -> 'Tensor':
 
     _check_tensors(inp1, inp2)
 
-    def div_backward(gradient):
-        _set_grad(inp1, gradient.data * (1 / inp2.data))
-        _set_grad(inp2, gradient.data * inp1.data)
-
-    return _create_tensor(inp1, inp2, data=inp1.data / inp2.data, func=div_backward)
+    return _create_tensor(
+        inp1,
+        inp2,
+        data=inp1.data / inp2.data,
+        func=wrapped_partial(div_backward, inp1=inp1, inp2=inp2)
+    )
 
 
 def power(inp, p) -> 'Tensor':
@@ -346,20 +779,21 @@ def power(inp, p) -> 'Tensor':
 
     _check_tensors(inp)
 
-    def power_backward(gradient):
-        _set_grad(inp, gradient.data * p * (inp.data ** (p - 1)))
-
-    return _create_tensor(inp, data=inp.data ** p, func=power_backward)
+    return _create_tensor(
+        inp,
+        data=inp.data ** p,
+        func=wrapped_partial(power_backward, inp=inp, p=p)
+    )
 
 
 def clone(inp) -> 'Tensor':
     _check_tensors(inp)
-    engine = _get_engine(inp)
 
-    def clone_backward(gradient):
-        _set_grad(inp, gradient.data * engine.ones_like(inp.data))
-
-    return _create_tensor(inp, data=inp.data, func=clone_backward)
+    return _create_tensor(
+        inp,
+        data=inp.data,
+        func=wrapped_partial(clone_backward, inp=inp)
+    )
 
 
 def detach(inp, inplace=True) -> 'Tensor':
@@ -532,106 +966,69 @@ def gpu(inp) -> 'Tensor':
 
 def relu(inp) -> 'Tensor':
     _check_tensors(inp)
-    engine = _get_engine(inp)
-
-    def relu_backward(gradient):
-        out = engine.zeros_like(inp.data)
-        out[inp.data <= 0] = 0
-        out[inp.data > 0] = 1
-
-        _set_grad(inp, gradient.data * out)
 
     arr = inp.data
     arr[arr <= 0] = 0
-    return _create_tensor(inp, data=arr, func=relu_backward)
+    return _create_tensor(
+        inp,
+        data=arr,
+        func=wrapped_partial(relu_backward, inp=inp)
+    )
 
 
 def sigmoid(inp) -> 'Tensor':
     _check_tensors(inp)
     engine = _get_engine(inp)
 
-    def sigmoid_backward(gradient):
-        _set_grad(inp, gradient.data * output_array * (1 - output_array))
-
     output_array = 1 / (1 + engine.exp(-inp.data))
-    return _create_tensor(inp, data=output_array, func=sigmoid_backward)
+    return _create_tensor(
+        inp,
+        data=output_array,
+        func=wrapped_partial(sigmoid_backward, inp=inp, out=output_array)
+    )
 
 
 def softmax(inp) -> 'Tensor':
     _check_tensors(inp)
     engine = _get_engine(inp)
 
-    def softmax_backward(gradient):
-        grad_array = gradient.data
-
-        indices = engine.where(grad_array == grad_array.max())
-
-        arr = -grad_array * grad_array
-        arr[indices] = grad_array[indices] * (1 - grad_array[indices])
-
-        _set_grad(inp, arr)
-
     e = engine.exp(inp.data - inp.data.max(axis=1, keepdims=True))
     z = e / engine.sum(e, axis=1, keepdims=True)
-    return _create_tensor(inp, data=z, func=softmax_backward)
+    return _create_tensor(
+        inp,
+        data=z,
+        func=wrapped_partial(softmax_backward, inp=inp)
+    )
 
 
 def tanh(inp) -> 'Tensor':
     _check_tensors(inp)
     engine = _get_engine(inp)
 
-    def tanh_backward(gradient):
-        _set_grad(inp, gradient.data * (1 - engine.square(output_array)))
-
     output_array = engine.tanh(inp.data)
-    return _create_tensor(inp, data=output_array, func=tanh_backward)
+    return _create_tensor(
+        inp,
+        data=output_array,
+        func=wrapped_partial(tanh_backward, inp=inp, out=output_array)
+    )
 
 
 def dense(inp, weight, bias) -> 'Tensor':
     _check_tensors(inp, weight, bias)
     engine = _get_engine(inp, weight, bias)
 
-    def dense_backward(gradient):
-        _set_grad(inp, engine.dot(gradient.data, weight.data))
-        _set_grad(weight, engine.dot(gradient.data.T, inp.data))
-        _set_grad(bias, engine.sum(gradient.data, axis=0, keepdims=True))
-
-    return _create_tensor(inp, weight, bias, data=engine.dot(inp.data, weight.data.T) + bias.data, func=dense_backward)
+    return _create_tensor(
+        inp,
+        weight,
+        bias,
+        data=engine.dot(inp.data, weight.data.T) + bias.data,
+        func=wrapped_partial(dense_backward, inp=inp, weight=weight, bias=bias)
+    )
 
 
 def conv(inp, weight, bias, stride, padding) -> 'Tensor':
     _check_tensors(inp, weight, bias)
     engine = _get_engine(inp, weight, bias)
-
-    def conv_backward(gradient):
-        _padded_input_array = engine.pad(array=inp.data, pad_width=((0, 0), (0, 0), (padding[0], padding[0]), (padding[1], padding[1])), mode='constant')
-        _weight_array = weight.data
-        _grad_array = gradient.data
-
-        _, _, _input_height, input_width = inp.shape
-        _, _, _kernel_height, _kernel_width = _weight_array.shape
-        _, _, _output_height, _output_width = _grad_array.shape
-        _output_array = engine.zeros_like(_padded_input_array)
-
-        _weight_grad = engine.zeros_like(_weight_array)
-        _bias_grad = _grad_array.sum(axis=(0, 2, 3))
-
-        for _row in range(_output_height):
-            for _column in range(_output_width):
-                _output_array[:, :, _row * stride:_row * stride + _kernel_height, _column * stride:_column * stride + _kernel_width] += engine.sum(
-                    _weight_array[engine.newaxis, :, :, :, :] *
-                    _grad_array[:, :, engine.newaxis, _row:_row + 1, _column:_column + 1],
-                    axis=1
-                )
-                _weight_grad += engine.sum(
-                    _padded_input_array[:, engine.newaxis, :, _row * stride:_row * stride + _kernel_height, _column * stride:_column * stride + _kernel_width] *
-                    _grad_array[:, :, engine.newaxis, _row:_row + 1, _column:_column + 1],
-                    axis=0
-                )
-
-        _set_grad(inp, _weight_grad)
-        _set_grad(weight, _bias_grad)
-        _set_grad(bias, _output_array[:, :, padding[0]:padding[0] + _input_height, padding[1]:padding[1] + input_width])
 
     padded_input_array = engine.pad(array=inp.data, pad_width=((0, 0), (0, 0), (padding[0], padding[0]), (padding[1], padding[1])), mode='constant')
     weight_array = weight.data
@@ -657,7 +1054,13 @@ def conv(inp, weight, bias, stride, padding) -> 'Tensor':
                 axis=(2, 3, 4)
             )
 
-    return _create_tensor(inp, weight, bias, data=output_array + bias_array[:, engine.newaxis, engine.newaxis], func=conv_backward)
+    return _create_tensor(
+        inp,
+        weight,
+        bias,
+        data=output_array + bias_array[:, engine.newaxis, engine.newaxis],
+        func=wrapped_partial(conv_backward, inp=inp, weight=weight, bias=bias, stride=stride, padding=padding)
+    )
 
 
 def dropout(inp, keep_prob) -> 'Tensor':
@@ -669,37 +1072,18 @@ def dropout(inp, keep_prob) -> 'Tensor':
         array /= keep_prob
         return array
 
-    def dropout_backward(gradient):
-        _set_grad(inp, apply_mask(gradient))
-
     mask = (engine.random.rand(*inp.shape) < keep_prob)
     out = apply_mask(inp.data)
-    return _create_tensor(inp, data=out, func=dropout_backward)
+    return _create_tensor(
+        inp,
+        data=out,
+        func=wrapped_partial(dropout_backward, inp=inp, mask=mask, keep_prob=keep_prob)
+    )
 
 
 def batch_norm(inp, weight, bias, running_mean, running_var, momentum, eps, training) -> 'Tensor':
     _check_tensors(inp)
     engine = _get_engine(inp)
-
-    def batch_norm_backward(gradient):
-        if training:
-            batch_size = inp.data.shape[0]
-            weight_by_grad = weight.data * gradient.data
-            dxc = weight_by_grad / input_standard_deviation
-            dstd = -engine.sum((weight_by_grad * input_mean_difference) / (input_standard_deviation * input_standard_deviation), axis=0)
-            dvar = 0.5 * dstd / input_standard_deviation
-            dxc += (2.0 / batch_size) * input_mean_difference * dvar
-            dmu = engine.sum(dxc, axis=0)
-
-            _set_grad(inp, dxc - dmu / batch_size)
-            _set_grad(weight, engine.sum(input_mean_over_input_standard_deviation * gradient.data, axis=0))
-            _set_grad(bias, gradient.data.sum(axis=0))
-        else:
-            weight_by_grad = weight.data * gradient.data
-
-            _set_grad(inp, weight_by_grad / input_standard_deviation)
-            _set_grad(weight, engine.sum(input_mean_over_input_standard_deviation * gradient.data, axis=0))
-            _set_grad(bias, gradient.data.sum(axis=0))
 
     input_array = inp.data
     running_mean_array = running_mean.data
@@ -747,7 +1131,18 @@ def batch_norm(inp, weight, bias, running_mean, running_var, momentum, eps, trai
         running_mean.data = running_mean_array * (1.0 - momentum) + input_mean * momentum
         running_var.data = running_var_array * (1.0 - momentum) + input_variance * momentum
 
-    return _create_tensor(inp, weight, bias, data=out, func=batch_norm_backward)
+    return _create_tensor(
+        inp,
+        weight,
+        bias,
+        data=out,
+        func=wrapped_partial(batch_norm_backward, inp=inp, weight=weight, bias=bias, training=training, **{
+            'input_standard_deviation': input_standard_deviation,
+            'input_mean_difference': input_mean_difference,
+            'input_mean_over_input_standard_deviation': input_mean_over_input_standard_deviation
+        }
+                             )
+    )
 
 
 def max_pool(inp, kernel_size, stride, padding) -> 'Tensor':
@@ -763,22 +1158,6 @@ def max_pool(inp, kernel_size, stride, padding) -> 'Tensor':
         n_idx, c_idx = engine.indices((n, c))
         mask.reshape((n, h * w, c))[n_idx, idx, c_idx] = 1
         cache[cords] = mask
-
-    def max_pool_backward(gradient):
-        grad_array = gradient.data
-
-        _, _, _output_height, _output_width = grad_array.shape
-        _kernel_height, _kernel_width = kernel_size
-
-        _padded_input_array = engine.pad(array=inp.data, pad_width=((0, 0), (0, 0), (padding[0], padding[0]), (padding[1], padding[1])), mode='constant')
-        _output_array = engine.zeros_like(_padded_input_array)
-
-        for _row in range(_output_height):
-            for _column in range(_output_width):
-                increment = grad_array[:, :, _row:_row + 1, _column:_column + 1] * cache[(_row, _column)]
-                _output_array[:, :, _row * stride:_row * stride + _kernel_height, _column * stride:_column * stride + _kernel_width] += increment
-
-        _set_grad(inp, _output_array[:, :, padding[0]:padding[0] + _output_height - 1, padding[1]:padding[1] + _output_width - 1])
 
     cache = {}
 
@@ -796,28 +1175,16 @@ def max_pool(inp, kernel_size, stride, padding) -> 'Tensor':
             save_mask(x=padded_input_slice, cords=(row, column))
             output_array[:, :, row, column] = engine.max(padded_input_slice, axis=(2, 3))
 
-    return _create_tensor(inp, data=output_array, func=max_pool_backward)
+    return _create_tensor(
+        inp,
+        data=output_array,
+        func=wrapped_partial(max_pool_backward, inp=inp, kernel_size=kernel_size, stride=stride, padding=padding, cache=cache)
+    )
 
 
 def avg_pool(inp, kernel_size, stride, padding) -> 'Tensor':
     _check_tensors(inp)
     engine = _get_engine(inp)
-
-    def avg_pool_backward(gradient):
-        grad_array = gradient.data
-
-        _, _, _output_height, _output_width = grad_array.shape
-        _kernel_height, _kernel_width = kernel_size
-
-        _padded_input_array = engine.pad(array=inp.data, pad_width=((0, 0), (0, 0), (padding[0], padding[0]), (padding[1], padding[1])), mode='constant')
-        _output_array = engine.zeros_like(_padded_input_array)
-
-        for _row in range(_output_height):
-            for _column in range(_output_width):
-                increment = grad_array[:, :, _row:_row + 1, _column:_column + 1] / _kernel_height / _kernel_width
-                _output_array[:, :, _row * stride:_row * stride + _kernel_height, _column * stride:_column * stride + _kernel_width] += increment
-
-        _set_grad(inp, _output_array[:, :, padding[0]:padding[0] + _output_height - 1, padding[1]:padding[1] + _output_width - 1])
 
     padded_input_array = engine.pad(array=inp.data, pad_width=((0, 0), (0, 0), (padding[0], padding[0]), (padding[1], padding[1])), mode='constant')
 
@@ -832,63 +1199,15 @@ def avg_pool(inp, kernel_size, stride, padding) -> 'Tensor':
             padded_input_slice = padded_input_array[:, :, row * stride:row * stride + kernel_height, column * stride:column * stride + kernel_width]
             output_array[:, :, row, column] = engine.mean(padded_input_slice, axis=(2, 3))
 
-    return _create_tensor(inp, data=output_array, func=avg_pool_backward)
+    return _create_tensor(
+        inp,
+        data=output_array,
+        func=wrapped_partial(avg_pool_backward, inp=inp, kernel_size=kernel_size, stride=stride, padding=padding)
+    )
 
 
 def rnn_relu(inp, hx, all_weights, bias, num_layers):
     _check_tensors(inp)
-    engine = _get_engine(inp)
-
-    # inp.shape = b, t, f
-    # hx.shape = n, b, h
-    def rnn_relu_backward(gradient):
-        _inp_grads = engine.zeros_like(inp.data)
-
-        # for each layer need to create new gradient array
-        # from last layer to first layer
-        for _layer in range(num_layers):
-            _w_ih, _w_hh, _b_ih, _b_hh = all_weights[_layer]
-
-            _w_ih_grads = engine.zeros_like(_w_ih.data)
-            _w_hh_grads = engine.zeros_like(_w_hh.data)
-            _b_ih_grads = engine.zeros_like(_b_ih.data)
-            _b_hh_grads = engine.zeros_like(_b_hh.data)
-
-            for _time in range(inp.size(1) - 1, -1, -1):
-                _prev_h = intermediate_values[_time][_layer]['prev_h']
-                _current_h = intermediate_values[_time][_layer]['current_h']
-                _inp = intermediate_values[_time][_layer]['input']
-                _relu_input = intermediate_values[_time][_layer]['relu_input']
-
-                _w_ih_power = engine.power(_w_ih.data, inp.size(1) - _time - 1)
-                _w_hh_power = engine.power(_w_hh.data, inp.size(1) - _time - 1)
-
-                _out = engine.zeros_like(_relu_input.data)
-                _out[_relu_input.data <= 0] = 0
-                _out[_relu_input.data > 0] = 1
-
-                # gradient._data = gradient.data * out
-
-                _w_ih_grads += engine.dot((_out * gradient.data[:, _time, :]).T, _inp.data) * _w_ih_power
-                _w_hh_grads += engine.dot((_out * gradient.data[:, _time, :]).T, _prev_h.data) * _w_hh_power
-                _b_ih_grads += engine.sum((_out * gradient.data[:, _time, :]), axis=0)
-                _b_hh_grads += engine.sum((_out * gradient.data[:, _time, :]), axis=0)
-
-                # print(
-                #     out.shape,
-                #     gradient.shape,
-                #     w_ih.shape,
-                #     (_out * gradient.data[:, _time, :]).shape,
-                #     engine.dot((_out * gradient.data[:, _time, :]), _w_ih.data).shape,
-                #     _inp_grads[:, _time, :].shape
-                # )
-                _inp_grads[:, _time, :] += engine.dot((_out * gradient.data[:, _time, :]), _w_ih.data)
-
-            _set_grad(_w_ih, data=_w_ih_grads)
-            _set_grad(_w_hh, data=_w_hh_grads)
-            _set_grad(_b_ih, data=_b_ih_grads)
-            _set_grad(_b_hh, data=_b_hh_grads)
-        _set_grad(inp, data=_inp_grads)
 
     out_tensor = zeros((inp.size(0), inp.size(1), hx.size(2)))
 
@@ -921,7 +1240,12 @@ def rnn_relu(inp, hx, all_weights, bias, num_layers):
         out_tensor[:, time, :] = out
 
     from functools import reduce
-    out_tensor = _create_tensor(inp, *reduce(lambda x, y: x + y, all_weights), data=out_tensor.data, func=rnn_relu_backward)
+    out_tensor = _create_tensor(
+        inp,
+        *reduce(lambda x, y: x + y, all_weights),
+        data=out_tensor.data,
+        func=wrapped_partial(rnn_relu_backward, inp=inp, all_weights=all_weights, num_layers=num_layers, intermediate_values=intermediate_values)
+    )
     return out_tensor, hx
 
 
@@ -949,7 +1273,11 @@ def rnn_tanh(inp, hx, all_weights, bias, num_layers):
 
         out_tensor[:, time, :] = out.data
 
-    out_tensor = _create_tensor(inp, data=out_tensor.data, func=None)
+    out_tensor = _create_tensor(
+        inp,
+        data=out_tensor.data,
+        func=None
+    )
     return out_tensor, hx
 
 
@@ -991,7 +1319,11 @@ def lstm(inp, hx, all_weights, bias, num_layers):
 
         out_tensor[:, time, :] = out.data
 
-    out_tensor = _create_tensor(inp, data=out_tensor.data, func=None)
+    out_tensor = _create_tensor(
+        inp,
+        data=out_tensor.data,
+        func=None
+    )
     return out_tensor, (hx, cx)
 
 
@@ -1025,7 +1357,11 @@ def gru(inp, hx, all_weights, bias, num_layers):
 
         out_tensor[:, time, :] = out
 
-    out_tensor = _create_tensor(inp, data=out_tensor.data, func=None)
+    out_tensor = _create_tensor(
+        inp,
+        data=out_tensor.data,
+        func=None
+    )
     return out_tensor, hx
 
 

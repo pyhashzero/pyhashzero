@@ -10,5 +10,5 @@ class MSELoss(Loss):
         self._loss = None
 
     def forward(self, prediction, target) -> np.array:
-        self._loss = (((prediction - target) ** 2) / np.prod(target.shape)).sum()
+        self._loss = (((prediction - target) ** 2) / np.prod(target.shape)).summation()
         return self._loss

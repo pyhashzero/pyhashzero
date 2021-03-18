@@ -30,6 +30,11 @@ from hz.ai.nn.utility import (
 )
 from hz.core import CoreObject
 
+warnings.filterwarnings("once", "The .grad attribute of a Tensor that is not a leaf Tensor is being accessed. Its .grad "
+                                "attribute won't be populated during autograd.backward(). If you indeed want the gradient "
+                                "for a non-leaf Tensor, use .retain_grad() on the non-leaf Tensor. If you access the "
+                                "non-leaf Tensor by mistake, make sure you access the leaf Tensor instead.", UserWarning)
+
 
 class CoreCallback(CoreObject):
     """
@@ -227,7 +232,7 @@ class Tensor:
         return self.div(other)
 
     def __pow__(self, power, modulo=None) -> 'Tensor':
-        return self.pow(power)
+        return self.power(power)
 
     def chunk(self, chunks, dim=0):
         ...
@@ -369,7 +374,7 @@ class Tensor:
             warnings.warn("The .grad attribute of a Tensor that is not a leaf Tensor is being accessed. Its .grad "
                           "attribute won't be populated during autograd.backward(). If you indeed want the gradient "
                           "for a non-leaf Tensor, use .retain_grad() on the non-leaf Tensor. If you access the "
-                          "non-leaf Tensor by mistake, make sure you access the leaf Tensor instead.", stacklevel=2)
+                          "non-leaf Tensor by mistake, make sure you access the leaf Tensor instead.", UserWarning)
 
         return self._grad
 
