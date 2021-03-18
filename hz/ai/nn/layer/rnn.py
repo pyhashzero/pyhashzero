@@ -1,6 +1,4 @@
 import math
-import numbers
-import warnings
 from typing import (
     List,
     Optional,
@@ -31,20 +29,13 @@ class RNNBase(Module):
     bias: bool
     dropout: float
 
-    def __init__(self, mode: str, input_size: int, hidden_size: int, num_layers: int = 1, bias: bool = True, dropout: float = 0.) -> None:
+    def __init__(self, mode: str, input_size: int, hidden_size: int, num_layers: int = 1, bias: bool = True) -> None:
         super(RNNBase, self).__init__()
         self.mode = mode
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.bias = bias
-        self.dropout = float(dropout)
-
-        if not isinstance(dropout, numbers.Number) or not 0 <= dropout <= 1 or isinstance(dropout, bool):
-            raise ValueError("dropout should be a number in range [0, 1] representing the probability of an element being zeroed")
-        if dropout > 0 and num_layers == 1:
-            warnings.warn("dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, "
-                          "but got dropout={} and num_layers={}".format(dropout, num_layers))
 
         if mode == 'LSTM':
             gate_size = 4 * hidden_size
@@ -94,7 +85,8 @@ class RNNBase(Module):
     def get_expected_hidden_size(self, inp: Tensor) -> Tuple[int, int, int]:
         return self.num_layers, inp.size(0), self.hidden_size
 
-    def check_hidden_size(self, hx: Tensor, expected_hidden_size: Tuple[int, int, int], msg: str = 'Expected hidden size {}, got {}') -> None:
+    @staticmethod
+    def check_hidden_size(hx: Tensor, expected_hidden_size: Tuple[int, int, int], msg: str = 'Expected hidden size {}, got {}') -> None:
         if hx.size() != expected_hidden_size:
             raise RuntimeError(msg.format(expected_hidden_size, list(hx.size())))
 
@@ -115,9 +107,9 @@ class RNNBase(Module):
         self.check_forward_args(inp, hx)
 
         if self.nonlinearity == "tanh":
-            ret = f.rnn_tanh(inp, hx, self.all_weights, self.bias, self.num_layers, self.dropout, self.training)
+            ret = f.rnn_tanh(inp, hx, self.all_weights, self.bias, self.num_layers)
         elif self.nonlinearity == "relu":
-            ret = f.rnn_relu(inp, hx, self.all_weights, self.bias, self.num_layers, self.dropout, self.training)
+            ret = f.rnn_relu(inp, hx, self.all_weights, self.bias, self.num_layers)
         else:
             raise RuntimeError("Unknown nonlinearity: {}".format(self.nonlinearity))
 
@@ -131,8 +123,6 @@ class RNNBase(Module):
             s += ', num_layers={num_layers}'
         if self.bias is not True:
             s += ', bias={bias}'
-        if self.dropout != 0:
-            s += ', dropout={dropout}'
         return s.format(**self.__dict__)
 
     def __setstate__(self, d):
@@ -198,7 +188,7 @@ class LSTM(RNNBase):
             hx = (h_zeros, c_zeros)
 
         self.check_forward_args(inp, hx)
-        return f.lstm(inp, hx, self.all_weights, self.bias, self.num_layers, self.dropout, self.training)
+        return f.lstm(inp, hx, self.all_weights, self.bias, self.num_layers)
 
 
 class GRU(RNNBase):
@@ -214,7 +204,7 @@ class GRU(RNNBase):
             hx = f.zeros((self.num_layers, max_batch_size, self.hidden_size), dtype=inp.dtype, device=inp.device)
 
         self.check_forward_args(inp, hx)
-        return f.gru(inp, hx, self.all_weights, self.bias, self.num_layers, self.dropout, self.training)
+        return f.gru(inp, hx, self.all_weights, self.bias, self.num_layers)
 
 
 class RNNCellBase(Module):

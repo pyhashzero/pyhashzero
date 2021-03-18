@@ -256,10 +256,10 @@ class Tensor:
     def transpose(self, axes) -> 'Tensor':
         ...
 
-    def abs(self) -> 'Tensor':
+    def absolute(self) -> 'Tensor':
         ...
 
-    def round(self) -> 'Tensor':
+    def around(self) -> 'Tensor':
         ...
 
     def floor(self) -> 'Tensor':
@@ -274,7 +274,7 @@ class Tensor:
     def negative(self) -> 'Tensor':
         ...
 
-    def sum(self) -> 'Tensor':
+    def summation(self) -> 'Tensor':
         ...
 
     def mean(self) -> 'Tensor':
@@ -298,7 +298,7 @@ class Tensor:
     def div(self, other) -> 'Tensor':
         ...
 
-    def pow(self, power) -> 'Tensor':
+    def power(self, p) -> 'Tensor':
         ...
 
     def clone(self) -> 'Tensor':

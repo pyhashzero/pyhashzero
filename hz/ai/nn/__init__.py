@@ -1,6 +1,6 @@
 from hz.ai.nn.core import Tensor
 from hz.ai.nn.functional import (
-    abs,
+    absolute,
     adam,
     add,
     arange,
@@ -42,7 +42,7 @@ from hz.ai.nn.functional import (
     one,
     ones,
     ones_like,
-    pow,
+    power,
     rand,
     rand_like,
     randint,
@@ -50,7 +50,7 @@ from hz.ai.nn.functional import (
     randn,
     randn_like,
     relu,
-    round,
+    around,
     sigmoid,
     single,
     softmax,
@@ -58,7 +58,7 @@ from hz.ai.nn.functional import (
     stack,
     std,
     sub,
-    sum,
+    summation,
     tanh,
     to_array,
     transpose,
@@ -81,13 +81,13 @@ Tensor.fill = fill
 Tensor.squeeze = squeeze
 Tensor.expand_dim = expand_dim
 Tensor.transpose = transpose
-Tensor.abs = abs
-Tensor.round = round
+Tensor.absolute = absolute
+Tensor.around = around
 Tensor.floor = floor
 Tensor.ceil = ceil
 Tensor.clip = clip
 Tensor.negative = negative
-Tensor.sum = sum
+Tensor.summation = summation
 Tensor.mean = mean
 Tensor.std = std
 Tensor.var = var
@@ -96,7 +96,7 @@ Tensor.add = add
 Tensor.sub = sub
 Tensor.mul = mul
 Tensor.div = div
-Tensor.pow = pow
+Tensor.power = power
 Tensor.clone = clone
 Tensor.detach = detach
 

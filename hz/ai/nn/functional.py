@@ -108,7 +108,6 @@ def chunk(tensor, chunks, dim=0):
 
 def view(inp, size=None) -> 'Tensor':
     _check_tensors(inp)
-    engine = _get_engine(inp)
 
     def view_backward(gradient):
         _set_grad(inp, gradient.data.reshape(inp.shape))
@@ -152,9 +151,8 @@ def one(inp) -> 'Tensor':
 
 def fill(inp, value) -> 'Tensor':
     _check_tensors(inp)
-    engine = _get_engine(inp)
 
-    inp._data.fill(value)
+    inp.data.fill(value)
     return inp
 
 
@@ -188,7 +186,7 @@ def transpose(inp, axes=None) -> 'Tensor':
     return _create_tensor(inp, data=engine.transpose(inp.data, axes=axes), func=transpose_backward)
 
 
-def abs(inp) -> 'Tensor':
+def absolute(inp) -> 'Tensor':
     _check_tensors(inp)
     engine = _get_engine(inp)
 
@@ -198,7 +196,7 @@ def abs(inp) -> 'Tensor':
     return _create_tensor(inp, data=engine.abs(inp.data), func=abs_backward)
 
 
-def round(inp) -> 'Tensor':
+def around(inp) -> 'Tensor':
     _check_tensors(inp)
     engine = _get_engine(inp)
 
@@ -248,7 +246,7 @@ def negative(inp) -> 'Tensor':
     return _create_tensor(inp, data=engine.negative(inp.data), func=negative_backward)
 
 
-def sum(inp) -> 'Tensor':
+def summation(inp) -> 'Tensor':
     _check_tensors(inp)
     engine = _get_engine(inp)
 
@@ -321,7 +319,6 @@ def mul(inp1, inp2) -> 'Tensor':
         inp2 = from_array(inp2, device=inp1.device)
 
     _check_tensors(inp1, inp2)
-    engine = _get_engine(inp1, inp2)
 
     def mul_backward(gradient):
         _set_grad(inp1, gradient.data * inp2.data)
@@ -335,7 +332,6 @@ def div(inp1, inp2) -> 'Tensor':
         inp2 = from_array(inp2, device=inp1.device)
 
     _check_tensors(inp1, inp2)
-    engine = _get_engine(inp1, inp2)
 
     def div_backward(gradient):
         _set_grad(inp1, gradient.data * (1 / inp2.data))
@@ -344,12 +340,11 @@ def div(inp1, inp2) -> 'Tensor':
     return _create_tensor(inp1, inp2, data=inp1.data / inp2.data, func=div_backward)
 
 
-def pow(inp, p) -> 'Tensor':
+def power(inp, p) -> 'Tensor':
     # if not isinstance(p, Tensor):
     #     p = from_array(p, device=inp.device)
 
     _check_tensors(inp)
-    engine = _get_engine(inp)
 
     def power_backward(gradient):
         _set_grad(inp, gradient.data * p * (inp.data ** (p - 1)))
@@ -369,7 +364,6 @@ def clone(inp) -> 'Tensor':
 
 def detach(inp, inplace=True) -> 'Tensor':
     _check_tensors(inp)
-    engine = _get_engine(inp)
 
     if inplace:
         inp._grad_fn = None
@@ -841,7 +835,7 @@ def avg_pool(inp, kernel_size, stride, padding) -> 'Tensor':
     return _create_tensor(inp, data=output_array, func=avg_pool_backward)
 
 
-def rnn_relu(inp, hx, all_weights, bias, num_layers, drop, training):
+def rnn_relu(inp, hx, all_weights, bias, num_layers):
     _check_tensors(inp)
     engine = _get_engine(inp)
 
@@ -931,21 +925,9 @@ def rnn_relu(inp, hx, all_weights, bias, num_layers, drop, training):
     return out_tensor, hx
 
 
-def rnn_tanh(inp, hx, all_weights, bias, num_layers, drop, training):
-    _check_tensors(inp)
-    engine = _get_engine(inp)
-
+def rnn_tanh(inp, hx, all_weights, bias, num_layers):
     # inp.shape = b, t, f
     # hx.shape = n, b, h
-    def rnn_tanh_backward(gradient):
-        inp.backward()
-        h.backward()
-        w_ih.backward()
-        w_hh.backward()
-        if b_ih is not None:
-            b_ih.backward()
-        if b_hh is not None:
-            b_hh.backward()
 
     out_tensor = zeros((inp.size(0), inp.size(1), hx.size(2)))
     for time in range(inp.size(1)):
@@ -967,26 +949,14 @@ def rnn_tanh(inp, hx, all_weights, bias, num_layers, drop, training):
 
         out_tensor[:, time, :] = out.data
 
-    out_tensor = _create_tensor(inp, data=out_tensor.data, func=rnn_tanh_backward)
+    out_tensor = _create_tensor(inp, data=out_tensor.data, func=None)
     return out_tensor, hx
 
 
-def lstm(inp, hx, all_weights, bias, num_layers, drop, training):
-    _check_tensors(inp)
-    engine = _get_engine(inp)
-
+def lstm(inp, hx, all_weights, bias, num_layers):
     # inp.shape = b, t, f
     # hx.shape = n, b, h
     # cx.shape = n, b, h
-    def lstm_backward(gradient):
-        inp.backward()
-        h.backward()
-        w_ih.backward()
-        w_hh.backward()
-        if b_ih is not None:
-            b_ih.backward()
-        if b_hh is not None:
-            b_hh.backward()
 
     hx, cx = hx
     out_tensor = zeros((inp.size(0), inp.size(1), hx.size(2)))
@@ -1021,25 +991,13 @@ def lstm(inp, hx, all_weights, bias, num_layers, drop, training):
 
         out_tensor[:, time, :] = out.data
 
-    out_tensor = _create_tensor(inp, data=out_tensor.data, func=lstm_backward)
+    out_tensor = _create_tensor(inp, data=out_tensor.data, func=None)
     return out_tensor, (hx, cx)
 
 
-def gru(inp, hx, all_weights, bias, num_layers, drop, training):
-    _check_tensors(inp)
-    engine = _get_engine(inp)
-
+def gru(inp, hx, all_weights, bias, num_layers):
     # inp.shape = b, t, f
     # hx.shape = n, b, h
-    def gru_backward(gradient):
-        inp.backward()
-        h.backward()
-        w_ih.backward()
-        w_hh.backward()
-        if b_ih is not None:
-            b_ih.backward()
-        if b_hh is not None:
-            b_hh.backward()
 
     out_tensor = zeros((inp.size(0), inp.size(1), hx.size(2)))
     for time in range(inp.size(1)):
@@ -1067,55 +1025,19 @@ def gru(inp, hx, all_weights, bias, num_layers, drop, training):
 
         out_tensor[:, time, :] = out
 
-    out_tensor = _create_tensor(inp, data=out_tensor.data, func=gru_backward)
+    out_tensor = _create_tensor(inp, data=out_tensor.data, func=None)
     return out_tensor, hx
 
 
 def rnn_relu_cell(inp, h, w_ih, w_hh, b_ih=None, b_hh=None):
-    _check_tensors(inp)
-    engine = _get_engine(inp)
-
-    def rnn_relu_cell_backward(gradient):
-        inp.backward()
-        h.backward()
-        w_ih.backward()
-        w_hh.backward()
-        if b_ih is not None:
-            b_ih.backward()
-        if b_hh is not None:
-            b_hh.backward()
-
     return relu(dense(inp, w_ih, b_ih) + dense(h, w_hh, b_hh))
 
 
 def rnn_tanh_cell(inp, h, w_ih, w_hh, b_ih=None, b_hh=None):
-    _check_tensors(inp)
-    engine = _get_engine(inp)
-
-    def rnn_tanh_cell_backward(gradient):
-        inp.backward()
-        h.backward()
-        w_ih.backward()
-        w_hh.backward()
-        if b_ih is not None:
-            b_ih.backward()
-        if b_hh is not None:
-            b_hh.backward()
-
     return tanh(dense(inp, w_ih, b_ih) + dense(h, w_hh, b_hh))
 
 
 def lstm_cell(inp, h, w_ih, w_hh, b_ih=None, b_hh=None):
-    def lstm_cell_backward(gradient):
-        inp.backward()
-        h.backward()
-        w_ih.backward()
-        w_hh.backward()
-        if b_ih is not None:
-            b_ih.backward()
-        if b_hh is not None:
-            b_hh.backward()
-
     hx, cx = h
     gates = dense(inp, w_ih, b_ih) + dense(hx, w_hh, b_hh)
 
@@ -1133,16 +1055,6 @@ def lstm_cell(inp, h, w_ih, w_hh, b_ih=None, b_hh=None):
 
 
 def gru_cell(inp, h, w_ih, w_hh, b_ih=None, b_hh=None):
-    def gru_cell_backward(gradient):
-        inp.backward()
-        h.backward()
-        w_ih.backward()
-        w_hh.backward()
-        if b_ih is not None:
-            b_ih.backward()
-        if b_hh is not None:
-            b_hh.backward()
-
     gi = dense(inp, w_ih, b_ih)
     gh = dense(h, w_hh, b_hh)
     i_r, i_i, i_n = gi.chunk(3, 1)
@@ -1165,8 +1077,6 @@ def adam(params, grads, exp_avgs, exp_avg_sqs, max_exp_avg_sqs, state_steps, ams
         exp_avg = exp_avgs[i]
         exp_avg_sq = exp_avg_sqs[i]
         step = state_steps[i]
-        if amsgrad:
-            max_exp_avg_sq = max_exp_avg_sqs[i]
 
         bias_correction1 = 1 - beta1 ** step
         bias_correction2 = 1 - beta2 ** step
@@ -1178,6 +1088,7 @@ def adam(params, grads, exp_avgs, exp_avg_sqs, max_exp_avg_sqs, state_steps, ams
         exp_avg._data = exp_avg.data * beta1 + (1 - beta1) * grad.data
         exp_avg_sq._data = exp_avg_sq.data * beta2 + (1 - beta2) * (grad.data * grad.data)
         if amsgrad:
+            max_exp_avg_sq = max_exp_avg_sqs[i]
             # Maintains the maximum of all 2nd moment running avg. till now
             max_exp_avg_sq._data = engine.maximum(max_exp_avg_sq.data, exp_avg_sq.data)
             # Use the max. for normalizing running avg. of gradient
@@ -1188,35 +1099,3 @@ def adam(params, grads, exp_avgs, exp_avg_sqs, max_exp_avg_sqs, state_steps, ams
         step_size = lr / bias_correction1
 
         param._data = param.data - step_size * (exp_avg.data / denom)
-
-
-class _FunctionBase(object):
-    @classmethod
-    def apply(cls, *args, **kwargs):
-        pass
-
-    def name(self, *args, **kwargs):
-        pass
-
-    def register_hook(self, *args, **kwargs):
-        pass
-
-    def _do_backward(self, gradient):
-        self.fn(gradient)
-
-    def _register_hook_dict(self, tensor):
-        self.tensor = tensor
-
-    def __init__(self, fn):
-        self.fn = fn
-
-    dirty_tensors = property(lambda self: object(), lambda self, v: None, lambda self: None)
-    materialize_grads = property(lambda self: object(), lambda self, v: None, lambda self: None)
-    metadata = property(lambda self: object(), lambda self, v: None, lambda self: None)
-    needs_input_grad = property(lambda self: object(), lambda self, v: None, lambda self: None)
-    next_functions = property(lambda self: object(), lambda self, v: None, lambda self: None)
-    non_differentiable = property(lambda self: object(), lambda self, v: None, lambda self: None)
-    requires_grad = property(lambda self: object(), lambda self, v: None, lambda self: None)
-    saved_tensors = property(lambda self: object(), lambda self, v: None, lambda self: None)
-    saved_variables = property(lambda self: object(), lambda self, v: None, lambda self: None)
-    to_save = property(lambda self: object(), lambda self, v: None, lambda self: None)
