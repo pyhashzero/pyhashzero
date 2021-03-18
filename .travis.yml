@@ -27,7 +27,7 @@ install:
 script:
   - py.test --cov=.
   - py.test tests/.
-  - py.test --pep8
+#   - py.test --pep8
 after_success:
   - coveralls
   - codecov
