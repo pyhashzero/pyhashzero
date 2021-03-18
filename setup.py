@@ -55,11 +55,13 @@ if __name__ == '__main__':
             'gym',
             'numpy',
             'torch',
-            'cupy',
             'six'
         ],
+        tests_require=[
+            'pytest',
+            'torch'
+        ],
         extras_require=extras,
-        tests_require=['pytest', 'torch'],
         package_data={
             'hz': [
                 'env/chess/*.png',
