@@ -6,9 +6,12 @@ class NDArray:
         if isinstance(data, (tuple, list)):
             self._data = []
             for _data in data:
+                # check lengths
                 self._data.append(NDArray(_data))
         elif isinstance(data, (int, float, bool)):
             self._data = data
+        elif isinstance(data, NDArray):
+            self._data = data._data
         else:
             raise ValueError(f'data type has to be one of the following (tuple, list, int, float, bool) not {type(data)}')
 
@@ -38,11 +41,46 @@ class NDArray:
     def __setitem__(self, key, value):
         if isinstance(self._data, (tuple, list)):
             self._data[key] = value
+            return
         raise ValueError('you cannot index primitive type')
+
+    def __add__(self, other):
+        return self.add(other)
+
+    def __sub__(self, other):
+        return self.sub(other)
+
+    def __mul__(self, other):
+        return self.mul(other)
+
+    def __truediv__(self, other):
+        return self.div(other)
+
+    def __pow__(self, power, modulo=None):
+        return self.power(power)
+
+    def add(self, other, *, out=None):
+        ...
+
+    def sub(self, other, *, out=None):
+        ...
+
+    def mul(self, other, *, out=None):
+        ...
+
+    def div(self, other, *, out=None):
+        ...
+
+    def power(self, p, *, out=None):
+        ...
 
     @property
     def device(self):
         return self._device
+
+    @property
+    def data(self):
+        return self._data
 
     def size(self, dim=None) -> Union[tuple, int]:
         if dim is None:
@@ -62,7 +100,7 @@ class NDArray:
     def ndim(self) -> int:
         if isinstance(self._data, (tuple, list)):
             return self._data[0].ndim + 1
-        return 1
+        return 0
 
     @property
     def dtype(self):

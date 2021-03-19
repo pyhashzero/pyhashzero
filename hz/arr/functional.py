@@ -4,23 +4,53 @@ newaxis = None
 
 
 def add(inp1, inp2, *, out=None) -> 'NDArray':
-    ...
+    if inp1.ndim == 0 and inp2.ndim == 0:
+        return NDArray(inp1.data + inp2.data)
+
+    ret = out or zeros(inp1.shape)
+    for idx, (_inp1, _inp2) in enumerate(zip(inp1, inp2)):
+        ret[idx] = _inp1 + _inp2
+    return ret
 
 
 def mul(inp1, inp2, *, out=None) -> 'NDArray':
-    ...
+    if inp1.ndim == 0 and inp2.ndim == 0:
+        return NDArray(inp1.data * inp2.data)
+
+    ret = out or zeros(inp1.shape)
+    for idx, (_inp1, _inp2) in enumerate(zip(inp1, inp2)):
+        ret[idx] = _inp1 * _inp2
+    return ret
 
 
 def div(inp1, inp2, *, out=None) -> 'NDArray':
-    ...
+    if inp1.ndim == 0 and inp2.ndim == 0:
+        return NDArray(inp1.data / inp2.data)
+
+    ret = out or zeros(inp1.shape)
+    for idx, (_inp1, _inp2) in enumerate(zip(inp1, inp2)):
+        ret[idx] = _inp1 / _inp2
+    return ret
 
 
 def sub(inp1, inp2, *, out=None) -> 'NDArray':
-    ...
+    if inp1.ndim == 0 and inp2.ndim == 0:
+        return NDArray(inp1.data - inp2.data)
+
+    ret = out or zeros(inp1.shape)
+    for idx, (_inp1, _inp2) in enumerate(zip(inp1, inp2)):
+        ret[idx] = _inp1 - _inp2
+    return ret
 
 
-def power(inp1, p, *, out=None) -> 'NDArray':
-    ...
+def power(inp, p, *, out=None) -> 'NDArray':
+    if inp.ndim == 0:
+        return NDArray(inp.data ** p)
+
+    ret = out or zeros(inp.shape)
+    for idx, _inp in enumerate(inp):
+        ret[idx] = _inp ** p
+    return ret
 
 
 def ones_like(inp) -> 'NDArray':
@@ -172,7 +202,13 @@ def full(shape) -> 'NDArray':
 
 
 def zeros(shape) -> 'NDArray':
-    ...
+    if len(shape) == 0:
+        return NDArray(0)
+
+    ret = []
+    for _ in range(shape[0]):
+        ret.append(zeros(shape[1:]))
+    return NDArray(ret)
 
 
 def ones(shape) -> 'NDArray':
