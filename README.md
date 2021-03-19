@@ -78,7 +78,7 @@ py.test --pep8
 If you want to check the code coverage, run the following command:
 
 ```bash
-py.test --cov=pyhashzero tests/
+py.test --cov=hz tests/
 ```
 
 ## References
