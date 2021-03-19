@@ -613,7 +613,7 @@ def absolute(inp) -> 'Tensor':
 
     return _create_tensor(
         inp,
-        data=engine.abs(inp.data),
+        data=engine.absolute(inp.data),
         func=wrapped_partial(absolute_backward, inp=inp)
     )
 

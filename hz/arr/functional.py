@@ -1,239 +1,239 @@
 from hz.arr.ndarray import NDArray
 
-
-def is_ndarray(obj: object) -> bool:
-    return isinstance(obj, NDArray)
+newaxis = None
 
 
-def concat(*ndarrays, axis=0) -> 'NDArray':
-    pass
+def add(inp1, inp2, *, out=None) -> 'NDArray':
+    ...
 
 
-def stack(*ndarrays, axis=0) -> 'NDArray':
-    pass
+def mul(inp1, inp2, *, out=None) -> 'NDArray':
+    ...
 
 
-def chunk(ndarray, chunks, dim=0):
-    pass
+def div(inp1, inp2, *, out=None) -> 'NDArray':
+    ...
 
 
-def view(inp, size=None) -> 'NDArray':
-    pass
+def sub(inp1, inp2, *, out=None) -> 'NDArray':
+    ...
 
 
-def index_select(inp, dim, index) -> 'NDArray':
-    pass
+def power(inp1, p, *, out=None) -> 'NDArray':
+    ...
 
 
-def zero(inp) -> 'NDArray':
-    pass
+def ones_like(inp) -> 'NDArray':
+    ...
 
 
-def one(inp) -> 'NDArray':
-    pass
+def zeros_like(inp) -> 'NDArray':
+    ...
 
 
-def fill(inp, value) -> 'NDArray':
-    pass
+def negate(inp, *, out=None) -> 'NDArray':
+    ...
 
 
-def squeeze(inp, axis=None) -> 'NDArray':
-    pass
+def split(inp, chunks, dim=0) -> 'NDArray':
+    ...
 
 
-def expand_dim(inp, axis=None) -> 'NDArray':
-    pass
+def reshape(inp, shape) -> 'NDArray':
+    ...
 
 
-def transpose(inp, axes=None) -> 'NDArray':
-    pass
+def unique(inp) -> 'NDArray':
+    ...
 
 
-def abs(inp) -> 'NDArray':
-    pass
+def asarray(arr) -> 'NDArray':
+    return NDArray(arr)
 
 
-def round(inp) -> 'NDArray':
-    pass
+def astype(dtype) -> 'NDArray':
+    ...
 
 
-def floor(inp) -> 'NDArray':
-    pass
+def put_along_axis(inp, indexes, values, axis) -> 'NDArray':
+    ...
 
 
-def ceil(inp) -> 'NDArray':
-    pass
+def max(inp) -> 'NDArray':
+    ...
 
 
-def clip(inp, min_val, max_val) -> 'NDArray':
-    pass
+def where(condition) -> 'NDArray':
+    ...
 
 
-def negative(inp) -> 'NDArray':
-    pass
+def square(inp) -> 'NDArray':
+    ...
+
+
+def dot(inp1, inp2, *, out=None) -> 'NDArray':
+    ...
+
+
+def transpose(inp, axes) -> 'NDArray':
+    ...
 
 
 def sum(inp) -> 'NDArray':
-    pass
+    ...
+
+
+def pad(inp, padding, mode) -> 'NDArray':
+    ...
 
 
 def mean(inp) -> 'NDArray':
-    pass
+    ...
+
+
+def median(inp) -> 'NDArray':
+    ...
 
 
 def std(inp) -> 'NDArray':
-    pass
+    ...
 
 
 def var(inp) -> 'NDArray':
-    pass
+    ...
 
 
-def add(inp1, inp2) -> 'NDArray':
-    pass
+def concatenate(inputs) -> 'NDArray':
+    ...
 
 
-def sub(inp1, inp2) -> 'NDArray':
-    pass
+def stack(inputs) -> 'NDArray':
+    ...
 
 
-def mul(inp1, inp2) -> 'NDArray':
-    pass
+def take_along_axis(inp, indexes, axis) -> 'NDArray':
+    ...
 
 
-def div(inp1, inp2) -> 'NDArray':
-    pass
+def fill(inp, value) -> 'NDArray':
+    ...
 
 
-def pow(inp, p) -> 'NDArray':
-    pass
+def squeeze(inp, axis) -> 'NDArray':
+    ...
 
 
-def clone(inp) -> 'NDArray':
-    pass
+def expand_dims(inp, axis) -> 'NDArray':
+    ...
 
 
-def arange(start=0, stop=0, step=1, device='cpu', dtype='float32') -> 'NDArray':
-    pass
+def absolute(inp) -> 'NDArray':
+    ...
 
 
-def linspace(start, end, steps, device='cpu', dtype='float32') -> 'NDArray':
-    pass
+def around(inp) -> 'NDArray':
+    ...
 
 
-def normal(loc=0.0, scale=1.0, size=None, device='cpu', dtype='float32') -> 'NDArray':
-    pass
+def floor(inp) -> 'NDArray':
+    ...
 
 
-def uniform(low=-1.0, high=1.0, size=None, device='cpu', dtype='float32') -> 'NDArray':
-    pass
+def ceil(inp) -> 'NDArray':
+    ...
 
 
-def rand(size, device='cpu', dtype='float32') -> 'NDArray':
-    pass
+def clip(inp, min_value, max_value) -> 'NDArray':
+    ...
 
 
-def randint(low=0, high=0, size=None, device='cpu', dtype='float32') -> 'NDArray':
-    pass
+def negative(inp) -> 'NDArray':
+    ...
 
 
-def randn(size, device='cpu', dtype='float32') -> 'NDArray':
-    pass
+def arange(start, stop, step) -> 'NDArray':
+    ...
 
 
-def eye(rows, columns=None, device='cpu', dtype='float32') -> 'NDArray':
-    pass
+def linspace(start, stop, steps) -> 'NDArray':
+    ...
 
 
-def empty(size, device='cpu', dtype='float32') -> 'NDArray':
-    pass
+def eye(rows, columns) -> 'NDArray':
+    ...
 
 
-def full(size, fill_value, device='cpu', dtype='float32') -> 'NDArray':
-    pass
+def empty(shape) -> 'NDArray':
+    ...
 
 
-def zeros(size, device='cpu', dtype='float32') -> 'NDArray':
-    pass
+def full(shape) -> 'NDArray':
+    ...
 
 
-def ones(size, device='cpu', dtype='float32') -> 'NDArray':
-    pass
+def zeros(shape) -> 'NDArray':
+    ...
 
 
-def normal_like(ndarray, loc=0.0, scale=1.0, device='cpu', dtype='float32') -> 'NDArray':
-    return normal(loc, scale, ndarray.shape, device, dtype)
+def ones(shape) -> 'NDArray':
+    ...
 
 
-def uniform_like(ndarray, low=-1.0, high=1.0, device='cpu', dtype='float32') -> 'NDArray':
-    return uniform(low, high, ndarray.shape, device, dtype)
+def copy(inp) -> 'NDArray':
+    ...
 
 
-def rand_like(ndarray, device='cpu', dtype='float32') -> 'NDArray':
-    return rand(ndarray.shape, device, dtype)
+def exp(inp) -> 'NDArray':
+    ...
 
 
-def randint_like(ndarray, low=0, high=0, device='cpu', dtype='float32') -> 'NDArray':
-    return randint(low, high, ndarray.shape, device, dtype)
+def tanh(inp) -> 'NDArray':
+    ...
 
 
-def randn_like(ndarray, device='cpu', dtype='float32') -> 'NDArray':
-    return randn(ndarray.shape, device, dtype)
+def sqrt(inp) -> 'NDArray':
+    ...
 
 
-def eye_like(ndarray, device='cpu', dtype='float32') -> 'NDArray':
-    return eye(ndarray.shape[0], ndarray.shape[1], device, dtype)
+def argmax(inp, axis) -> 'NDArray':
+    ...
 
 
-def empty_like(ndarray, device='cpu', dtype='float32') -> 'NDArray':
-    return empty(ndarray.shapeh, device, dtype)
+def indices(dimensions) -> 'NDArray':
+    ...
 
 
-def full_like(ndarray, fill_value, device='cpu', dtype='float32') -> 'NDArray':
-    return full(ndarray.shape, fill_value, device, dtype)
+def get_item(inp, indexes) -> 'NDArray':
+    ...
 
 
-def zeros_like(ndarray, device='cpu', dtype='float32') -> 'NDArray':
-    return zeros(ndarray.shape, device, dtype)
+def set_item(inp, indexes, values) -> 'NDArray':
+    ...
 
 
-def ones_like(ndarray, device='cpu', dtype='float32') -> 'NDArray':
-    return ones(ndarray.shape, device, dtype)
+def index_with_booleans(inp, indexes) -> 'NDArray':
+    ...
 
 
-def from_array(data, dtype='float32') -> 'NDArray':
-    return NDArray(data)
+def gt(inp1, inp2) -> 'NDArray':
+    ...
 
 
-def to_array(inp):
-    if inp.device != 'cpu':
-        raise TypeError('can\'t convert cuda:0 device type ndarray to numpy. Use NDArray.cpu() to copy the ndarray to host memory first.')
-    return inp.data
+def lt(inp1, inp2) -> 'NDArray':
+    ...
 
 
-def half(inp) -> 'NDArray':
-    pass
+def eq(inp1, inp2) -> 'NDArray':
+    ...
 
 
-def single(inp) -> 'NDArray':
-    pass
+def neq(inp1, inp2) -> 'NDArray':
+    ...
 
 
-def double(inp) -> 'NDArray':
-    pass
+def gte(inp1, inp2) -> 'NDArray':
+    ...
 
 
-def cpu(inp) -> 'NDArray':
-    if inp.device == 'cpu':
-        return inp
-
-    inp._device = 'cpu'
-    return inp
-
-
-def gpu(inp) -> 'NDArray':
-    if inp.device == 'gpu':
-        return inp
-
-    inp._device = 'gpu'
-    return inp
+def lte(inp1, inp2) -> 'NDArray':
+    ...

@@ -1,187 +1,69 @@
 from typing import Union
 
 
-class Broadcast(object):
-    index = property(lambda self: object(), lambda self, v: None, lambda self: None)
-    iters = property(lambda self: object(), lambda self, v: None, lambda self: None)
-    nd = property(lambda self: object(), lambda self, v: None, lambda self: None)
-    ndim = property(lambda self: object(), lambda self, v: None, lambda self: None)
-    numiter = property(lambda self: object(), lambda self, v: None, lambda self: None)
-    shape = property(lambda self: object(), lambda self, v: None, lambda self: None)
-    size = property(lambda self: object(), lambda self, v: None, lambda self: None)
-
-
-class DType:
-    pass
-
-
 class NDArray:
     def __init__(self, data=None):
-        self._data = data
+        if isinstance(data, (tuple, list)):
+            self._data = []
+            for _data in data:
+                self._data.append(NDArray(_data))
+        elif isinstance(data, (int, float, bool)):
+            self._data = data
+        else:
+            raise ValueError(f'data type has to be one of the following (tuple, list, int, float, bool) not {type(data)}')
+
         self._device = 'cpu'
+        self._dtype = 'float32'
 
     def __repr__(self):
         return str(self)
 
     def __str__(self):
-        data = f'data={self._data}'
-        device = f'device={self.device}'
+        if isinstance(self._data, (int, float, bool)):
+            return f'{self._data}'
 
-        str_list = [device, data]
+        data = f'{self._data}'
+
+        str_list = [data]
         str_list = list(filter(lambda parameter: parameter != '', str_list))
         string = ', '.join(str_list)
 
-        return f'NDArray({string})'
+        return f'{string}'
 
     def __getitem__(self, item):
-        data = self.data[item]
-        ndarray = NDArray.from_array(data)
-        if self.device == 'gpu':
-            ndarray = ndarray.gpu()
-        return ndarray
+        if isinstance(self._data, (tuple, list)):
+            return self._data[item]
+        raise ValueError('you cannot index primitive type')
 
     def __setitem__(self, key, value):
-        self._data[key] = value.data
+        if isinstance(self._data, (tuple, list)):
+            self._data[key] = value
+        raise ValueError('you cannot index primitive type')
 
-    def __add__(self, other) -> 'NDArray':
-        return self.add(other)
-
-    def __sub__(self, other) -> 'NDArray':
-        return self.sub(other)
-
-    def __mul__(self, other) -> 'NDArray':
-        return self.mul(other)
-
-    def __truediv__(self, other) -> 'NDArray':
-        return self.div(other)
-
-    def __pow__(self, power, modulo=None) -> 'NDArray':
-        return self.pow(power)
-
-    def chunk(self, chunks, dim=0):
-        ...
-
-    def view(self, size) -> 'NDArray':
-        ...
-
-    def index_select(self, dim, index) -> 'NDArray':
-        ...
-
-    def zero(self) -> 'NDArray':
-        ...
-
-    def one(self) -> 'NDArray':
-        ...
-
-    def fill(self, value) -> 'NDArray':
-        ...
-
-    def squeeze(self, axis=None) -> 'NDArray':
-        ...
-
-    def expand_dim(self, axis=None) -> 'NDArray':
-        ...
-
-    def transpose(self, axes) -> 'NDArray':
-        ...
-
-    def abs(self) -> 'NDArray':
-        ...
-
-    def round(self) -> 'NDArray':
-        ...
-
-    def floor(self) -> 'NDArray':
-        ...
-
-    def ceil(self) -> 'NDArray':
-        ...
-
-    def clip(self, min_val, max_val) -> 'NDArray':
-        ...
-
-    def negative(self) -> 'NDArray':
-        ...
-
-    def sum(self) -> 'NDArray':
-        ...
-
-    def mean(self) -> 'NDArray':
-        ...
-
-    def std(self) -> 'NDArray':
-        ...
-
-    def var(self) -> 'NDArray':
-        ...
-
-    def add(self, other) -> 'NDArray':
-        ...
-
-    def sub(self, other) -> 'NDArray':
-        ...
-
-    def mul(self, other) -> 'NDArray':
-        ...
-
-    def div(self, other) -> 'NDArray':
-        ...
-
-    def pow(self, power) -> 'NDArray':
-        ...
-
-    def clone(self) -> 'NDArray':
-        ...
-
-    def detach(self, inplace=False) -> 'NDArray':
-        ...
-
-    @staticmethod
-    def from_array(data, requires_grad=False) -> 'NDArray':
-        ...
-
-    def to_array(self):
-        ...
-
-    def half(self) -> 'NDArray':
-        ...
-
-    def single(self) -> 'NDArray':
-        ...
-
-    def double(self) -> 'NDArray':
-        ...
-
-    def cpu(self) -> 'NDArray':
-        ...
-
-    def gpu(self) -> 'NDArray':
-        ...
+    @property
+    def device(self):
+        return self._device
 
     def size(self, dim=None) -> Union[tuple, int]:
         if dim is None:
-            return self._data.shape
-        return self._data.shape[dim]
+            return self.shape
+        return self.shape[dim]
 
     def dim(self) -> int:
-        return len(self._data.shape)
+        return len(self.shape)
 
     @property
     def shape(self) -> tuple:
-        return self._data.shape
+        if isinstance(self._data, (tuple, list)):
+            return tuple([len(self._data)] + list(self._data[0].shape))
+        return ()
 
     @property
     def ndim(self) -> int:
-        return len(self._data.shape)
+        if isinstance(self._data, (tuple, list)):
+            return self._data[0].ndim + 1
+        return 1
 
     @property
     def dtype(self):
-        return self._data.dtype
-
-    @property
-    def device(self) -> str:
-        return self._device
-
-    @property
-    def data(self):
-        return self._data
+        return self._dtype
