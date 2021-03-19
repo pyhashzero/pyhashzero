@@ -1,7 +1,7 @@
 import pytest
 
 
-def test_iva():
+def test_arr():
     pass
 
 

@@ -1,7 +1,7 @@
 import pytest
 
 
-def test():
+def test_cache():
     pass
 
 
