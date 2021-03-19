@@ -47,17 +47,53 @@ class NDArray:
     def __add__(self, other):
         return self.add(other)
 
+    def __iadd__(self, other):
+        return self.add(other, out=self)
+
     def __sub__(self, other):
         return self.sub(other)
+
+    def __isub__(self, other):
+        return self.sub(other, out=self)
 
     def __mul__(self, other):
         return self.mul(other)
 
+    def __imul__(self, other):
+        return self.mul(other, out=self)
+
     def __truediv__(self, other):
         return self.div(other)
 
+    def __itruediv__(self, other):
+        return self.div(other, out=self)
+
     def __pow__(self, power, modulo=None):
         return self.power(power)
+
+    def __ipow__(self, other):
+        return self.power(other, out=self)
+
+    def __neg__(self):
+        return self.negative()
+
+    def __lt__(self, other):
+        return self.lt(other)
+
+    def __le__(self, other):
+        return self.le(other)
+
+    def __gt__(self, other):
+        return self.gt(other)
+
+    def __ge__(self, other):
+        return self.ge(other)
+
+    def __eq__(self, other):
+        return self.eq(other)
+
+    def __ne__(self, other):
+        return self.ne(other)
 
     def add(self, other, *, out=None):
         ...
@@ -73,6 +109,27 @@ class NDArray:
 
     def power(self, p, *, out=None):
         ...
+
+    def negative(self, *, out=None):
+        ...
+
+    def lt(self, other):
+        ...
+
+    def le(self, other):
+        ...
+
+    def gt(self, other):
+        ...
+
+    def ge(self, other):
+        ...
+
+    def eq(self, other):
+        ...
+
+    def ne(self, other):
+        pass
 
     @property
     def device(self):
