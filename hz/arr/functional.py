@@ -2,7 +2,15 @@ import math
 
 from hz.arr.ndarray import NDArray
 
-newaxis = None
+
+def fill(inp, value) -> 'NDArray':
+    if inp.ndim == 0:
+        inp._data = value
+        return inp
+
+    for idx in range(len(inp)):
+        inp[idx] = fill(inp[idx], value)
+    return inp
 
 
 def absolute(inp, *, out=None) -> 'NDArray':
@@ -13,7 +21,7 @@ def absolute(inp, *, out=None) -> 'NDArray':
 
     ret = out or zeros(inp.shape)
     for idx, _inp in enumerate(inp):
-        ret[idx] = absolute(_inp)
+        ret[idx] = absolute(_inp, out=ret[idx])
     return ret
 
 
@@ -25,7 +33,7 @@ def around(inp, *, out=None) -> 'NDArray':
 
     ret = out or zeros(inp.shape)
     for idx, _inp in enumerate(inp):
-        ret[idx] = around(_inp)
+        ret[idx] = around(_inp, out=ret[idx])
     return ret
 
 
@@ -37,7 +45,7 @@ def floor(inp, *, out=None) -> 'NDArray':
 
     ret = out or zeros(inp.shape)
     for idx, _inp in enumerate(inp):
-        ret[idx] = floor(_inp)
+        ret[idx] = floor(_inp, out=ret[idx])
     return ret
 
 
@@ -49,7 +57,7 @@ def ceil(inp, *, out=None) -> 'NDArray':
 
     ret = out or zeros(inp.shape)
     for idx, _inp in enumerate(inp):
-        ret[idx] = ceil(_inp)
+        ret[idx] = ceil(_inp, out=ret[idx])
     return ret
 
 
@@ -61,7 +69,7 @@ def negative(inp, *, out=None) -> 'NDArray':
 
     ret = out or zeros(inp.shape)
     for idx, _inp in enumerate(inp):
-        ret[idx] = -_inp
+        ret[idx] = negative(_inp, out=ret[idx])
     return ret
 
 
@@ -73,7 +81,7 @@ def sqrt(inp, *, out=None) -> 'NDArray':
 
     ret = out or zeros(inp.shape)
     for idx, _inp in enumerate(inp):
-        ret[idx] = sqrt(_inp)
+        ret[idx] = sqrt(_inp, out=ret[idx])
     return ret
 
 
@@ -85,171 +93,52 @@ def square(inp, *, out=None) -> 'NDArray':
 
     ret = out or zeros(inp.shape)
     for idx, _inp in enumerate(inp):
-        ret[idx] = square(_inp)
+        ret[idx] = square(_inp, out=ret[idx])
     return ret
 
 
-def add(inp1, inp2, *, out=None) -> 'NDArray':
-    if inp1.ndim == 0 and inp2.ndim == 0:
-        ret = out or zeros(inp1.shape)
-        ret._data = inp1.data + inp2.data
-        return ret
-
-    ret = out or zeros(inp1.shape)
-    for idx, (_inp1, _inp2) in enumerate(zip(inp1, inp2)):
-        ret[idx] = _inp1 + _inp2
-    return ret
-
-
-def mul(inp1, inp2, *, out=None) -> 'NDArray':
-    if inp1.ndim == 0 and inp2.ndim == 0:
-        ret = out or zeros(inp1.shape)
-        ret._data = inp1.data * inp2.data
-        return ret
-
-    ret = out or zeros(inp1.shape)
-    for idx, (_inp1, _inp2) in enumerate(zip(inp1, inp2)):
-        ret[idx] = _inp1 * _inp2
-    return ret
-
-
-def div(inp1, inp2, *, out=None) -> 'NDArray':
-    if inp1.ndim == 0 and inp2.ndim == 0:
-        ret = out or zeros(inp1.shape)
-        ret._data = inp1.data / inp2.data
-        return ret
-
-    ret = out or zeros(inp1.shape)
-    for idx, (_inp1, _inp2) in enumerate(zip(inp1, inp2)):
-        ret[idx] = _inp1 / _inp2
-    return ret
-
-
-def sub(inp1, inp2, *, out=None) -> 'NDArray':
-    if inp1.ndim == 0 and inp2.ndim == 0:
-        ret = out or zeros(inp1.shape)
-        ret._data = inp1.data - inp2.data
-        return ret
-
-    ret = out or zeros(inp1.shape)
-    for idx, (_inp1, _inp2) in enumerate(zip(inp1, inp2)):
-        ret[idx] = _inp1 - _inp2
-    return ret
-
-
-def power(inp, p, *, out=None) -> 'NDArray':
+def clip(inp, min_value, max_value, *, out=None) -> 'NDArray':
     if inp.ndim == 0:
         ret = out or zeros(inp.shape)
-        ret._data = inp.data ** p
+        value = inp.data
+        if value < min_value:
+            value = min_value
+        if value > max_value:
+            value = max_value
+        ret._data = value
         return ret
 
     ret = out or zeros(inp.shape)
     for idx, _inp in enumerate(inp):
-        ret[idx] = _inp ** p
+        ret[idx] = clip(_inp, min_value, max_value, out=ret[idx])
     return ret
 
 
-def lt(inp1, inp2, *, out=None) -> 'NDArray':
-    if inp1.ndim == 0 and inp2.ndim == 0:
-        ret = out or zeros(inp1.shape)
-        ret._data = inp1.data < inp2.data
+def exp(inp, *, out=None) -> 'NDArray':
+    if inp.ndim == 0:
+        ret = out or zeros(inp.shape)
+        ret._data = math.e ** inp.data
         return ret
 
-    ret = out or zeros(inp1.shape)
-    for idx, (_inp1, _inp2) in enumerate(zip(inp1, inp2)):
-        ret[idx] = _inp1 < _inp2
+    ret = out or zeros(inp.shape)
+    for idx, _inp in enumerate(inp):
+        ret[idx] = exp(_inp, out=ret[idx])
     return ret
 
 
-def le(inp1, inp2, *, out=None) -> 'NDArray':
-    if inp1.ndim == 0 and inp2.ndim == 0:
-        ret = out or zeros(inp1.shape)
-        ret._data = inp1.data <= inp2.data
+def tanh(inp, *, out=None) -> 'NDArray':
+    if inp.ndim == 0:
+        ret = out or zeros(inp.shape)
+        ret._data = math.tan(inp.data)
         return ret
 
-    ret = out or zeros(inp1.shape)
-    for idx, (_inp1, _inp2) in enumerate(zip(inp1, inp2)):
-        ret[idx] = _inp1 <= _inp2
+    ret = out or zeros(inp.shape)
+    for idx, _inp in enumerate(inp):
+        ret[idx] = tanh(_inp, out=ret[idx])
     return ret
 
 
-def gt(inp1, inp2, *, out=None) -> 'NDArray':
-    if inp1.ndim == 0 and inp2.ndim == 0:
-        ret = out or zeros(inp1.shape)
-        ret._data = inp1.data > inp2.data
-        return ret
-
-    ret = out or zeros(inp1.shape)
-    for idx, (_inp1, _inp2) in enumerate(zip(inp1, inp2)):
-        ret[idx] = _inp1 > _inp2
-    return ret
-
-
-def ge(inp1, inp2, *, out=None) -> 'NDArray':
-    if inp1.ndim == 0 and inp2.ndim == 0:
-        ret = out or zeros(inp1.shape)
-        ret._data = inp1.data >= inp2.data
-        return ret
-
-    ret = out or zeros(inp1.shape)
-    for idx, (_inp1, _inp2) in enumerate(zip(inp1, inp2)):
-        ret[idx] = _inp1 >= _inp2
-    return ret
-
-
-def eq(inp1, inp2, *, out=None) -> 'NDArray':
-    if inp1.ndim == 0 and inp2.ndim == 0:
-        ret = out or zeros(inp1.shape)
-        ret._data = inp1.data == inp2.data
-        return ret
-
-    ret = out or zeros(inp1.shape)
-    for idx, (_inp1, _inp2) in enumerate(zip(inp1, inp2)):
-        ret[idx] = _inp1 == _inp2
-    return ret
-
-
-def ne(inp1, inp2, *, out=None) -> 'NDArray':
-    if inp1.ndim == 0 and inp2.ndim == 0:
-        ret = out or zeros(inp1.shape)
-        ret._data = inp1.data != inp2.data
-        return ret
-
-    ret = out or zeros(inp1.shape)
-    for idx, (_inp1, _inp2) in enumerate(zip(inp1, inp2)):
-        ret[idx] = _inp1 != _inp2
-    return ret
-
-
-def ones_like(inp) -> 'NDArray':
-    return ones(inp.shape)
-
-
-def zeros_like(inp) -> 'NDArray':
-    return zeros(inp.shape)
-
-
-def split(inp, chunks, dim=0) -> 'NDArray':
-    ...
-
-
-def reshape(inp, shape) -> 'NDArray':
-    ...
-
-
-def unique(inp) -> 'NDArray':
-    ...
-
-
-def asarray(arr) -> 'NDArray':
-    return NDArray(arr)
-
-
-def astype(dtype) -> 'NDArray':
-    ...
-
-
-def put_along_axis(inp, indexes, values, axis) -> 'NDArray':
+def argmax(inp, axis) -> 'NDArray':
     ...
 
 
@@ -257,23 +146,7 @@ def max(inp) -> 'NDArray':
     ...
 
 
-def where(condition) -> 'NDArray':
-    ...
-
-
-def dot(inp1, inp2, *, out=None) -> 'NDArray':
-    ...
-
-
-def transpose(inp, axes) -> 'NDArray':
-    ...
-
-
 def sum(inp) -> 'NDArray':
-    ...
-
-
-def pad(inp, padding, mode) -> 'NDArray':
     ...
 
 
@@ -293,6 +166,146 @@ def var(inp) -> 'NDArray':
     ...
 
 
+def unique(inp) -> 'NDArray':
+    ...
+
+
+def add(inp1, inp2, *, out=None) -> 'NDArray':
+    if inp1.ndim == 0 and inp2.ndim == 0:
+        ret = out or zeros(inp1.shape)
+        ret._data = inp1.data + inp2.data
+        return ret
+
+    ret = out or zeros(inp1.shape)
+    for idx, (_inp1, _inp2) in enumerate(zip(inp1, inp2)):
+        ret[idx] = add(_inp1, _inp2, out=ret[idx])
+    return ret
+
+
+def mul(inp1, inp2, *, out=None) -> 'NDArray':
+    if inp1.ndim == 0 and inp2.ndim == 0:
+        ret = out or zeros(inp1.shape)
+        ret._data = inp1.data * inp2.data
+        return ret
+
+    ret = out or zeros(inp1.shape)
+    for idx, (_inp1, _inp2) in enumerate(zip(inp1, inp2)):
+        ret[idx] = mul(_inp1, _inp2, out=ret[idx])
+    return ret
+
+
+def div(inp1, inp2, *, out=None) -> 'NDArray':
+    if inp1.ndim == 0 and inp2.ndim == 0:
+        ret = out or zeros(inp1.shape)
+        ret._data = inp1.data / inp2.data
+        return ret
+
+    ret = out or zeros(inp1.shape)
+    for idx, (_inp1, _inp2) in enumerate(zip(inp1, inp2)):
+        ret[idx] = div(_inp1, _inp2, out=ret[idx])
+    return ret
+
+
+def sub(inp1, inp2, *, out=None) -> 'NDArray':
+    if inp1.ndim == 0 and inp2.ndim == 0:
+        ret = out or zeros(inp1.shape)
+        ret._data = inp1.data - inp2.data
+        return ret
+
+    ret = out or zeros(inp1.shape)
+    for idx, (_inp1, _inp2) in enumerate(zip(inp1, inp2)):
+        ret[idx] = sub(_inp1, _inp2, out=ret[idx])
+    return ret
+
+
+def power(inp, p, *, out=None) -> 'NDArray':
+    if inp.ndim == 0:
+        ret = out or zeros(inp.shape)
+        ret._data = inp.data ** p
+        return ret
+
+    ret = out or zeros(inp.shape)
+    for idx, _inp in enumerate(inp):
+        ret[idx] = power(_inp, p, out=ret[idx])
+    return ret
+
+
+def lt(inp1, inp2, *, out=None) -> 'NDArray':
+    if inp1.ndim == 0 and inp2.ndim == 0:
+        ret = out or zeros(inp1.shape)
+        ret._data = inp1.data < inp2.data
+        return ret
+
+    ret = out or zeros(inp1.shape)
+    for idx, (_inp1, _inp2) in enumerate(zip(inp1, inp2)):
+        ret[idx] = lt(_inp1, _inp2, out=ret[idx])
+    return ret
+
+
+def le(inp1, inp2, *, out=None) -> 'NDArray':
+    if inp1.ndim == 0 and inp2.ndim == 0:
+        ret = out or zeros(inp1.shape)
+        ret._data = inp1.data <= inp2.data
+        return ret
+
+    ret = out or zeros(inp1.shape)
+    for idx, (_inp1, _inp2) in enumerate(zip(inp1, inp2)):
+        ret[idx] = le(_inp1, _inp2, out=ret[idx])
+    return ret
+
+
+def gt(inp1, inp2, *, out=None) -> 'NDArray':
+    if inp1.ndim == 0 and inp2.ndim == 0:
+        ret = out or zeros(inp1.shape)
+        ret._data = inp1.data > inp2.data
+        return ret
+
+    ret = out or zeros(inp1.shape)
+    for idx, (_inp1, _inp2) in enumerate(zip(inp1, inp2)):
+        ret[idx] = gt(_inp1, _inp2, out=ret[idx])
+    return ret
+
+
+def ge(inp1, inp2, *, out=None) -> 'NDArray':
+    if inp1.ndim == 0 and inp2.ndim == 0:
+        ret = out or zeros(inp1.shape)
+        ret._data = inp1.data >= inp2.data
+        return ret
+
+    ret = out or zeros(inp1.shape)
+    for idx, (_inp1, _inp2) in enumerate(zip(inp1, inp2)):
+        ret[idx] = ge(_inp1, _inp2, out=ret[idx])
+    return ret
+
+
+def eq(inp1, inp2, *, out=None) -> 'NDArray':
+    if inp1.ndim == 0 and inp2.ndim == 0:
+        ret = out or zeros(inp1.shape)
+        ret._data = inp1.data == inp2.data
+        return ret
+
+    ret = out or zeros(inp1.shape)
+    for idx, (_inp1, _inp2) in enumerate(zip(inp1, inp2)):
+        ret[idx] = eq(_inp1, _inp2, out=ret[idx])
+    return ret
+
+
+def ne(inp1, inp2, *, out=None) -> 'NDArray':
+    if inp1.ndim == 0 and inp2.ndim == 0:
+        ret = out or zeros(inp1.shape)
+        ret._data = inp1.data != inp2.data
+        return ret
+
+    ret = out or zeros(inp1.shape)
+    for idx, (_inp1, _inp2) in enumerate(zip(inp1, inp2)):
+        ret[idx] = ne(_inp1, _inp2, out=ret[idx])
+    return ret
+
+
+def dot(inp1, inp2, *, out=None) -> 'NDArray':
+    ...
+
+
 def concatenate(inputs) -> 'NDArray':
     ...
 
@@ -301,11 +314,7 @@ def stack(inputs) -> 'NDArray':
     ...
 
 
-def take_along_axis(inp, indexes, axis) -> 'NDArray':
-    ...
-
-
-def fill(inp, value) -> 'NDArray':
+def split(inp, chunks, dim=0) -> 'NDArray':
     ...
 
 
@@ -317,7 +326,31 @@ def expand_dims(inp, axis) -> 'NDArray':
     ...
 
 
-def clip(inp, min_value, max_value) -> 'NDArray':
+def reshape(inp, shape) -> 'NDArray':
+    ...
+
+
+def transpose(inp, axes) -> 'NDArray':
+    ...
+
+
+def pad(inp, padding, mode) -> 'NDArray':
+    ...
+
+
+def indices(dimensions) -> 'NDArray':
+    ...
+
+
+def where(condition) -> 'NDArray':
+    ...
+
+
+def take_along_axis(inp, indexes, axis) -> 'NDArray':
+    ...
+
+
+def put_along_axis(inp, indexes, values, axis) -> 'NDArray':
     ...
 
 
@@ -373,33 +406,34 @@ def ones(shape) -> 'NDArray':
     return NDArray(ret)
 
 
+def ones_like(inp) -> 'NDArray':
+    return ones(inp.shape)
+
+
+def zeros_like(inp) -> 'NDArray':
+    return zeros(inp.shape)
+
+
 def copy(inp) -> 'NDArray':
     ...
 
 
-def exp(inp) -> 'NDArray':
+def asarray(arr) -> 'NDArray':
+    return NDArray(arr)
+
+
+def astype(dtype) -> 'NDArray':
     ...
 
-
-def tanh(inp) -> 'NDArray':
-    ...
-
-
-def argmax(inp, axis) -> 'NDArray':
-    ...
-
-
-def indices(dimensions) -> 'NDArray':
-    ...
-
-
-def get_item(inp, indexes) -> 'NDArray':
-    ...
-
-
-def set_item(inp, indexes, values) -> 'NDArray':
-    ...
-
-
-def index_with_booleans(inp, indexes) -> 'NDArray':
-    ...
+#
+#
+# def get_item(inp, indexes) -> 'NDArray':
+#     ...
+#
+#
+# def set_item(inp, indexes, values) -> 'NDArray':
+#     ...
+#
+#
+# def index_with_booleans(inp, indexes) -> 'NDArray':
+#     ...

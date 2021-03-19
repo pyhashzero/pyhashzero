@@ -33,6 +33,9 @@ class NDArray:
 
         return f'{string}'
 
+    def __len__(self):
+        return len(self._data)
+
     def __getitem__(self, item):
         if isinstance(self._data, (tuple, list)):
             return self._data[item]
@@ -129,7 +132,10 @@ class NDArray:
         ...
 
     def ne(self, other):
-        pass
+        ...
+
+    def fill(self, value):
+        ...
 
     @property
     def device(self):

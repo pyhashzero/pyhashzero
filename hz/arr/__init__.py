@@ -2,6 +2,7 @@ from .functional import (
     add,
     div,
     eq,
+    fill,
     ge,
     gt,
     le,
@@ -26,3 +27,4 @@ NDArray.gt = gt
 NDArray.ge = ge
 NDArray.eq = eq
 NDArray.ne = ne
+NDArray.fill = fill
