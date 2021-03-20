@@ -992,7 +992,7 @@ def softmax(inp) -> 'Tensor':
     _check_tensors(inp)
     engine = _get_engine(inp)
 
-    e = engine.exp(inp.data - inp.data.max(axis=1, keepdims=True))
+    e = engine.exp(inp.data - inp.data.amax(axis=1, keepdims=True))
     z = e / engine.sum(e, axis=1, keepdims=True)
     return _create_tensor(
         inp,
@@ -1173,7 +1173,7 @@ def max_pool(inp, kernel_size, stride, padding) -> 'Tensor':
         for column in range(output_width):
             padded_input_slice = padded_input_array[:, :, row * stride:row * stride + kernel_height, column * stride:column * stride + kernel_width]
             save_mask(x=padded_input_slice, cords=(row, column))
-            output_array[:, :, row, column] = engine.max(padded_input_slice, axis=(2, 3))
+            output_array[:, :, row, column] = engine.amax(padded_input_slice, axis=(2, 3))
 
     return _create_tensor(
         inp,

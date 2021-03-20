@@ -1,16 +1,20 @@
-from typing import Union
+from typing import (
+    Tuple,
+    Union
+)
 
 
-class NDArray:
+class Array:
     def __init__(self, data=None):
         if isinstance(data, (tuple, list)):
             self._data = []
             for _data in data:
                 # check lengths
-                self._data.append(NDArray(_data))
+                self._data.append(Array(_data))
         elif isinstance(data, (int, float, bool)):
             self._data = data
-        elif isinstance(data, NDArray):
+        elif isinstance(data, Array):
+            # need to copy not assign
             self._data = data._data
         else:
             raise ValueError(f'data type has to be one of the following (tuple, list, int, float, bool) not {type(data)}')
@@ -33,12 +37,46 @@ class NDArray:
 
         return f'{string}'
 
+    def __bool__(self):
+        return True
+
+    def __copy__(self):
+        pass
+
+    def __deepcopy__(self, memodict=None):
+        memodict = memodict or {}
+        if isinstance(self._data, (int, float, bool)):
+            return Array(self._data)
+        ret = []
+        for data in self._data:
+            ret.append(data.copy())
+        return Array(ret)
+
     def __len__(self):
         return len(self._data)
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: Union[int, slice, Tuple[Union[int, slice]]]):
         if isinstance(self._data, (tuple, list)):
-            return self._data[item]
+            if isinstance(item, int):
+                return Array(self._data[item].list())
+            elif isinstance(item, slice):
+                ret = []
+                for data in self._data[item]:
+                    if isinstance(data.data, (int, float, bool)):
+                        ret.append(data.data)
+                    else:
+                        ret.append(data.data.list())
+                return Array(ret)
+            elif isinstance(item, tuple) and len(item) == 1:
+                return Array(self._data[item[0]])
+            elif isinstance(item, tuple):
+                ret = []
+                if isinstance(item[0], int):
+                    return self._data[item[0]][item[1:]]
+                elif isinstance(item[0], slice):
+                    for data in self._data[item[0]]:
+                        ret.append(data[item[1:]])
+                return Array(ret)
         raise ValueError('you cannot index primitive type')
 
     def __setitem__(self, key, value):
@@ -134,8 +172,23 @@ class NDArray:
     def ne(self, other):
         ...
 
+    def reshape(self, size):
+        ...
+
     def fill(self, value):
         ...
+
+    def copy(self):
+        ...
+
+    def list(self):
+        if self.ndim == 0:
+            return self._data
+
+        ret = []
+        for data in self._data:
+            ret.append(data.list())
+        return ret
 
     @property
     def device(self):

@@ -1,5 +1,6 @@
 from .functional import (
     add,
+    copy,
     div,
     eq,
     fill,
@@ -11,20 +12,23 @@ from .functional import (
     ne,
     negative,
     power,
+    reshape,
     sub
 )
-from .ndarray import NDArray
+from .array import Array
 
-NDArray.add = add
-NDArray.sub = sub
-NDArray.div = div
-NDArray.mul = mul
-NDArray.power = power
-NDArray.negative = negative
-NDArray.lt = lt
-NDArray.le = le
-NDArray.gt = gt
-NDArray.ge = ge
-NDArray.eq = eq
-NDArray.ne = ne
-NDArray.fill = fill
+Array.add = add
+Array.sub = sub
+Array.div = div
+Array.mul = mul
+Array.power = power
+Array.negative = negative
+Array.lt = lt
+Array.le = le
+Array.gt = gt
+Array.ge = ge
+Array.eq = eq
+Array.ne = ne
+Array.reshape = reshape
+Array.fill = fill
+Array.copy = copy
