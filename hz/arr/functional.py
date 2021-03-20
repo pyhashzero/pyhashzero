@@ -19,6 +19,7 @@ S = Union[Tuple[int], List[int], Shape]
 
 class Broadcast:
     def __init__(self, inp1, inp2):
+        # print(inp1, inp2)
         if not isinstance(inp2, Array):
             inp2 = Array(inp2)
 
@@ -28,10 +29,11 @@ class Broadcast:
 
         # first parameter is NDArray, second parameter is float, int, bool
         if inp1.ndim != 0 and inp2.ndim == 0:
-            inp2 = reshape(repeat(inp2, inp1.shape[0]), (inp1.shape[0],))
+            inp2 = reshape(repeat(inp2, prod(Array(inp1.shape)).data), inp1.shape)
 
         # both parameters are NDArray
         if inp1.ndim != 0 and inp2.ndim != 0 and inp1.ndim != inp2.ndim:
+            # print('reshaping inp2 array')
             new_shape = [1] * (len(inp1.shape) - len(inp2.shape)) + list(inp2.shape)
             inp2 = reshape(inp2, new_shape)
 
@@ -40,11 +42,13 @@ class Broadcast:
             pass
 
         # first dimension sizes are not the same and first dimension size of the second input is not 1
+        # print(inp1.shape, inp2.shape)
         if inp1.ndim != 0 and inp2.ndim != 0 and inp1.shape[0] != inp2.shape[0] and inp2.shape[0] != 1:
             raise ValueError('cannot broadcast')
 
         # first dimension sizes are not the same but the first dimension size of the second input is 1, it can be broadcast
         if inp1.ndim != 0 and inp2.ndim != 0 and inp1.shape[0] != inp2.shape[0] and inp2.shape[0] == 1:
+            # print('repeating and reshaping inp2 array')
             inp2 = reshape(repeat(inp2, inp1.shape[0]), (inp1.shape[0],) + inp2.shape[1:])
 
         self.inp1 = inp1
@@ -253,18 +257,18 @@ def median(inp, axis=None) -> 'Array':
 
 
 def std(inp, axis=None) -> 'Array':
+    return sqrt(var(inp, axis=axis))
+
+
+def var(inp, axis=None) -> 'Array':
     if axis is not None:
         m_shape = list(inp.shape)
         m_shape[axis] = 1
         m = reshape(mean(inp, axis), m_shape)
         a = absolute(inp - m)
-        return sqrt(mean(a ** 2, axis=axis))
+        return mean(a ** 2, axis=axis)
 
-    return sqrt(mean(absolute(inp - mean(inp)) ** 2))
-
-
-def var(inp, axis=None) -> 'Array':
-    ...
+    return mean(absolute(inp - mean(inp)) ** 2)
 
 
 def prod(inp, axis=None) -> 'Array':
@@ -279,126 +283,57 @@ def unique(inp) -> 'Array':
 
 
 def add(inp1, inp2, *, out=None) -> 'Array':
-    if not isinstance(inp2, Array):
-        inp2 = Array(inp2)
+    ret = out or zeros(inp1.shape)
+    broadcast = Broadcast(inp1, inp2)
 
     if inp1.ndim == 0 and inp2.ndim == 0:
-        ret = out or zeros(inp1.shape)
+        inp1, inp2 = broadcast.get()
         ret._data = inp1.data + inp2.data
         return ret
 
-    if inp2.ndim == 0:
-        ret = out or zeros(inp1.shape)
-        for idx, _inp1 in enumerate(inp1):
-            ret[idx] = add(_inp1, inp2, out=ret[idx])
-        return ret
-
-    if inp1.shape[0] != inp2.shape[0] and inp2.shape[0] == 1:
-        ret = out or zeros(inp1.shape)
-        for idx, (_inp1, _inp2) in enumerate(zip(inp1, [inp2] * inp1.shape[0])):
-            ret[idx] = add(_inp1, _inp2, out=ret[idx])
-        return ret
-
-    ret = out or zeros(inp1.shape)
-    for idx, (_inp1, _inp2) in enumerate(zip(inp1, inp2)):
+    for idx, (_inp1, _inp2) in enumerate(broadcast):
         ret[idx] = add(_inp1, _inp2, out=ret[idx])
     return ret
 
 
 def mul(inp1, inp2, *, out=None) -> 'Array':
-    if not isinstance(inp2, Array):
-        inp2 = Array(inp2)
+    ret = out or zeros(inp1.shape)
+    broadcast = Broadcast(inp1, inp2)
 
     if inp1.ndim == 0 and inp2.ndim == 0:
-        ret = out or zeros(inp1.shape)
+        inp1, inp2 = broadcast.get()
         ret._data = inp1.data * inp2.data
         return ret
 
-    if inp2.ndim == 0:
-        ret = out or zeros(inp1.shape)
-        for idx, _inp1 in enumerate(inp1):
-            ret[idx] = mul(_inp1, inp2, out=ret[idx])
-        return ret
-
-    if inp1.shape[0] != inp2.shape[0] and inp2.shape[0] == 1:
-        ret = out or zeros(inp1.shape)
-        for idx, (_inp1, _inp2) in enumerate(zip(inp1, [inp2] * inp1.shape[0])):
-            ret[idx] = mul(_inp1, _inp2, out=ret[idx])
-        return ret
-
-    ret = out or zeros(inp1.shape)
-    for idx, (_inp1, _inp2) in enumerate(zip(inp1, inp2)):
+    for idx, (_inp1, _inp2) in enumerate(broadcast):
         ret[idx] = mul(_inp1, _inp2, out=ret[idx])
     return ret
 
 
 def div(inp1, inp2, *, out=None) -> 'Array':
-    if not isinstance(inp2, Array):
-        inp2 = Array(inp2)
+    ret = out or zeros(inp1.shape)
+    broadcast = Broadcast(inp1, inp2)
 
     if inp1.ndim == 0 and inp2.ndim == 0:
-        ret = out or zeros(inp1.shape)
+        inp1, inp2 = broadcast.get()
         ret._data = inp1.data / inp2.data
         return ret
 
-    if inp2.ndim == 0:
-        ret = out or zeros(inp1.shape)
-        for idx, _inp1 in enumerate(inp1):
-            ret[idx] = div(_inp1, inp2, out=ret[idx])
-        return ret
-
-    if inp1.shape[0] != inp2.shape[0] and inp2.shape[0] == 1:
-        ret = out or zeros(inp1.shape)
-        for idx, (_inp1, _inp2) in enumerate(zip(inp1, [inp2] * inp1.shape[0])):
-            ret[idx] = div(_inp1, _inp2, out=ret[idx])
-        return ret
-
-    ret = out or zeros(inp1.shape)
-    for idx, (_inp1, _inp2) in enumerate(zip(inp1, inp2)):
+    for idx, (_inp1, _inp2) in enumerate(broadcast):
         ret[idx] = div(_inp1, _inp2, out=ret[idx])
     return ret
 
 
 def sub(inp1, inp2, *, out=None) -> 'Array':
-    if not isinstance(inp2, Array):
-        inp2 = Array(inp2)
+    ret = out or zeros(inp1.shape)
+    broadcast = Broadcast(inp1, inp2)
 
-    # both parameters are float, int, bool
     if inp1.ndim == 0 and inp2.ndim == 0:
-        ret = out or zeros(inp1.shape)
+        inp1, inp2 = broadcast.get()
         ret._data = inp1.data - inp2.data
         return ret
 
-    # first parameter is NDArray, second parameter is float, int, bool
-    if inp2.ndim == 0:
-        ret = out or zeros(inp1.shape)
-        for idx, _inp1 in enumerate(inp1):
-            ret[idx] = sub(_inp1, inp2, out=ret[idx])
-        return ret
-
-    # both parameters are NDArray
-    if inp1.ndim != inp2.ndim:
-        # need to add new axis on first axis
-        new_shape = [1] * (len(inp1.shape) - len(inp2.shape)) + list(inp2.shape)
-        inp2 = reshape(inp2, new_shape)
-
-        # raise ValueError(f'dimension mismatch, {inp1.ndim} - {inp2.ndim}')
-
-    # first dimensiton sizes are the same, it can be broadcasted together
-    if inp1.shape[0] == inp2.shape[0]:
-        ret = out or zeros(inp1.shape)
-        for idx, (_inp1, _inp2) in enumerate(zip(inp1, inp2)):
-            ret[idx] = sub(_inp1, _inp2, out=ret[idx])
-        return ret
-
-    # first dimension sizes are not the same and first dimension size of the second input is not 1
-    if inp1.shape[0] != inp2.shape[0] and inp2.shape[0] != 1:
-        raise ValueError('cannot broadcast')
-
-    # first dimensiton sizes are not the same but the first dimension size of the second input is 1, it can be broadcasted
-
-    ret = out or zeros(inp1.shape)
-    for idx, (_inp1, _inp2) in enumerate(zip(inp1, reshape(repeat(inp2, inp1.shape[0]), (inp1.shape[0],) + inp2.shape[1:]))):
+    for idx, (_inp1, _inp2) in enumerate(broadcast):
         ret[idx] = sub(_inp1, _inp2, out=ret[idx])
     return ret
 
