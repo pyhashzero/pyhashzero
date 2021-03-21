@@ -1,5 +1,4 @@
 import math
-from copy import deepcopy
 from typing import (
     List,
     Tuple,
@@ -7,19 +6,32 @@ from typing import (
 )
 
 from hz.arr.array import Array
-from hz.arr.data import Data
+from hz.arr.data import *
 from hz.arr.shape import Shape
-from hz.arr.type import Type
 
-D = Union[int, float, bool, Data]
-A = Union[Tuple[D], List[D], Array]
-T = Union[str, Type]
-S = Union[Tuple[int], List[int], Shape]
+__all__ = [
+    'absolute', 'add', 'amax', 'amin', 'arange', 'argmax', 'argmin', 'around', 'asarray', 'astype', 'ceil',
+    'clip', 'concatenate', 'copy', 'dim', 'dot', 'empty', 'eq', 'exp', 'expand_dims', 'eye', 'fill', 'flatten',
+    'floor', 'floordiv', 'full', 'ge', 'getitem', 'gt', 'indices', 'le', 'linspace', 'lt', 'mean',
+    'median', 'mul', 'ne', 'negative', 'ones', 'ones_like', 'pad', 'power', 'prod', 'put_along_axis', 'repeat',
+    'reshape', 'setitem', 'size', 'split', 'sqrt', 'square', 'squeeze', 'stack', 'std', 'sub', 'sum',
+    'take_along_axis', 'tanh', 'tolist', 'transpose', 'truediv', 'unique', 'var', 'where', 'zeros', 'zeros_like'
+]
+
+BooleanT = Union[bool, boolean]
+IntegerT = Union[int, integer, int16, int32, int64]
+FloatingT = Union[float, floating, float16, float32, float64]
+NumberT = Union[IntegerT, FloatingT]
+
+DataT = Union[BooleanT, IntegerT, FloatingT]
+ArrayT = Union[Tuple[DataT], List[DataT], Array, Tuple['ArrayT'], List['ArrayT']]
+TypeT = Union[str]
+ShapeT = Union[Tuple[int], List[int], Shape]
+IndexT = Union[int, slice, Tuple[Union[int, slice]]]
 
 
 class Broadcast:
-    def __init__(self, inp1, inp2):
-        # print(inp1, inp2)
+    def __init__(self, inp1: ArrayT, inp2: ArrayT):
         if not isinstance(inp2, Array):
             inp2 = Array(inp2)
 
@@ -82,17 +94,256 @@ class Broadcast:
             self.zip = None
 
 
-def fill(inp, value) -> 'Array':
-    if inp.ndim == 0:
-        inp._data = value
-        return inp
+def _normalize_value(value: DataT) -> DataT:
+    if isinstance(value, bool):
+        value = boolean(value)
+    elif isinstance(value, int):
+        value = integer(value)
+    elif isinstance(value, float):
+        value = floating(value)
+    elif isinstance(value, (boolean, integer, int16, int32, int64, floating, float16, float32, float64)):
+        pass
+    else:
+        raise ValueError('value type has to be following: bool, boolean, int, integer, int16, int32, int64, float, floating, float16, float32, float64')
+    return value
+
+
+def asarray(arr: ArrayT) -> ArrayT:
+    return Array(arr)
+
+
+def astype(inp: Union[DataT, ArrayT], dtype: DataT) -> Union[DataT, ArrayT]:
+    ...
+
+
+def arange(start, stop, step) -> ArrayT:
+    ...
+
+
+def linspace(start, stop, steps) -> ArrayT:
+    ...
+
+
+def eye(rows, columns) -> ArrayT:
+    ...
+
+
+def empty(shape) -> ArrayT:
+    if len(shape) == 0:
+        raise ValueError('array shape has to be at least 1-dimensional')
+
+    ret = []
+    for _ in range(shape[0]):
+        ret.append(zeros(shape[1:]))
+    return Array(ret)
+
+
+def full(shape) -> ArrayT:
+    if len(shape) == 0:
+        raise ValueError('array shape has to be at least 1-dimensional')
+
+    ret = []
+    for _ in range(shape[0]):
+        ret.append(ones(shape[1:]))
+    return Array(ret)
+
+
+def zeros(shape) -> ArrayT:
+    if len(shape) == 0:
+        raise ValueError('array shape has to be at least 1-dimensional')
+
+    ret = []
+    for _ in range(shape[0]):
+        ret.append(zeros(shape[1:]))
+    return Array(ret)
+
+
+def ones(shape) -> ArrayT:
+    if len(shape) == 0:
+        raise ValueError('array shape has to be at least 1-dimensional')
+
+    ret = []
+    for _ in range(shape[0]):
+        ret.append(ones(shape[1:]))
+    return Array(ret)
+
+
+def ones_like(inp: ArrayT) -> ArrayT:
+    return ones(size(inp))
+
+
+def zeros_like(inp: ArrayT) -> ArrayT:
+    return zeros(size(inp))
+
+
+def concatenate(inputs) -> ArrayT:
+    ...
+
+
+def stack(inputs) -> ArrayT:
+    ...
+
+
+def copy(inp: Union[DataT, ArrayT]) -> Union[DataT, ArrayT]:
+    if isinstance(inp, (bool, boolean, int, integer, int16, int32, int64, float, floating, float16, float32, float64)):
+        return type(inp)(inp)
+    elif isinstance(inp, (tuple, list, Array)):
+        return type(inp)(tolist(inp))
+    else:
+        raise ValueError(f'cannot copy object of type {type(inp)}')
+
+
+def repeat(inp: Union[DataT, ArrayT], count: DataT, axis=0) -> ArrayT:
+    ret = []
+    for _ in range(count):
+        ret.append(inp.tolist())
+    return Array(ret)
+
+
+def split(inp: ArrayT, chunks, axis=0) -> ArrayT:
+    ...
+
+
+def tolist(inp: ArrayT) -> list:
+    ret = []
+    for data in inp:
+        if isinstance(data, (bool, int, float)):
+            ret.append(data)
+        elif isinstance(data, (boolean, integer, int16, int32, int64, floating, float16, float32, float64)):
+            ret.append(data.data)
+        elif isinstance(data, (tuple, list, Array)):
+            ret.append(tolist(data))
+        else:
+            raise ValueError(f'{type(data)} could not be converted')
+    return ret
+
+
+def getitem(inp: ArrayT, idx: IndexT):
+    if isinstance(idx, int):
+        return copy(inp.data[idx])
+
+    elif isinstance(idx, slice):
+        ret = []
+        for data in inp.data[idx]:
+            if isinstance(data.data, (boolean, integer, floating)):
+                ret.append(data.data)
+            else:
+                ret.append(data.data.list())
+        return Array(ret)
+
+    elif isinstance(idx, tuple) and len(idx) == 1:
+        return Array(inp.data[idx[0]])
+
+    elif isinstance(idx, tuple):
+        ret = []
+        if isinstance(idx[0], int):
+            return inp.data[idx[0]][idx[1:]]
+        elif isinstance(idx[0], slice):
+            for data in inp.data[idx[0]]:
+                ret.append(data[idx[1:]])
+        return Array(ret)
+
+
+def take_along_axis(inp: Union[DataT, ArrayT], indexes, axis) -> ArrayT:
+    ...
+
+
+def setitem(inp: ArrayT, idx, value):
+    inp.data[idx] = copy(value)
+
+
+def put_along_axis(inp: Union[DataT, ArrayT], indexes, values, axis) -> ArrayT:
+    ...
+
+
+def where(condition) -> ArrayT:
+    ...
+
+
+def indices(dimensions) -> ArrayT:
+    ...
+
+
+def dim(inp: Union[DataT, ArrayT]) -> int:
+    if isinstance(inp, (boolean, int, integer, int16, int32, int64, float, floating, float16, float32, float64)):
+        return 0
+    return dim(inp[0]) + 1
+
+
+def size(inp: Union[DataT, ArrayT], axis=None):
+    if isinstance(inp, (boolean, integer, floating)):
+        return ()
+
+    if axis is None or axis < 0:
+        return tuple([len(inp)] + list(size(inp[0])))
+    return tuple((size(inp[0], axis=axis-1)))
+
+
+def flatten(inp: ArrayT) -> ArrayT:
+    data_type = type(inp)
+
+    ret = []
+    for data in inp:
+        if dim(data) == 1:
+            ret += tolist(data)
+        else:
+            ret += tolist(flatten(data))
+    return data_type(ret)
+
+
+def reshape(inp: ArrayT, shape) -> ArrayT:
+    flat = flatten(inp)
+
+    subdims = shape[1:]
+    subsize = prod(Array(subdims)).data
+    if shape[0] * subsize != len(flat):
+        raise ValueError('size does not match or invalid')
+    if not subdims:
+        return flat
+    return Array([reshape(flat[i: i + subsize], subdims) for i in range(0, len(flat), subsize)])
+
+
+def squeeze(inp: ArrayT, axis) -> ArrayT:
+    ...
+
+
+def expand_dims(inp: ArrayT, axis) -> ArrayT:
+    ...
+
+
+def pad(inp: Union[DataT, ArrayT], padding, mode) -> ArrayT:
+    ...
+
+
+def transpose(inp: Union[DataT, ArrayT], axes) -> ArrayT:
+    ...
+
+
+def fill(inp: ArrayT, value: DataT) -> ArrayT:
+    # should use set item and get item
+    if isinstance(value, bool):
+        value = boolean(value)
+    elif isinstance(value, int):
+        value = integer(value)
+    elif isinstance(value, float):
+        value = floating(value)
+    elif isinstance(value, (boolean, integer, int16, int32, int64, floating, float16, float32, float64)):
+        pass
+    else:
+        raise ValueError('value type has to be following: bool, boolean, int, integer, int16, int32, int64, float, floating, float16, float32, float64')
 
     for idx in range(len(inp)):
-        inp[idx] = fill(inp[idx], value)
+        data_type = type(inp[idx])
+        if isinstance(inp[idx], (bool, int, float)):
+            inp[idx] = data_type(copy(value.data))
+        elif isinstance(inp[idx], (boolean, integer, int16, int32, int64, floating, float16, float32, float64)):
+            inp[idx] = data_type(copy(value))
+        else:
+            inp[idx] = fill(inp[idx], value)
     return inp
 
 
-def absolute(inp, *, out=None) -> 'Array':
+def absolute(inp: Union[DataT, ArrayT], *, out=None) -> Union[DataT, ArrayT]:
     if inp.ndim == 0:
         ret = out or zeros(inp.shape)
         ret._data = abs(inp.data)
@@ -104,43 +355,7 @@ def absolute(inp, *, out=None) -> 'Array':
     return ret
 
 
-def around(inp, *, out=None) -> 'Array':
-    if inp.ndim == 0:
-        ret = out or zeros(inp.shape)
-        ret._data = round(inp.data)
-        return ret
-
-    ret = out or zeros(inp.shape)
-    for idx, _inp in enumerate(inp):
-        ret[idx] = around(_inp, out=ret[idx])
-    return ret
-
-
-def floor(inp, *, out=None) -> 'Array':
-    if inp.ndim == 0:
-        ret = out or zeros(inp.shape)
-        ret._data = math.floor(inp.data)
-        return ret
-
-    ret = out or zeros(inp.shape)
-    for idx, _inp in enumerate(inp):
-        ret[idx] = floor(_inp, out=ret[idx])
-    return ret
-
-
-def ceil(inp, *, out=None) -> 'Array':
-    if inp.ndim == 0:
-        ret = out or zeros(inp.shape)
-        ret._data = math.ceil(inp.data)
-        return ret
-
-    ret = out or zeros(inp.shape)
-    for idx, _inp in enumerate(inp):
-        ret[idx] = ceil(_inp, out=ret[idx])
-    return ret
-
-
-def negative(inp, *, out=None) -> 'Array':
+def negative(inp: Union[DataT, ArrayT], *, out=None) -> Union[DataT, ArrayT]:
     if inp.ndim == 0:
         ret = out or zeros(inp.shape)
         ret._data = -inp.data
@@ -152,7 +367,43 @@ def negative(inp, *, out=None) -> 'Array':
     return ret
 
 
-def sqrt(inp, *, out=None) -> 'Array':
+def around(inp: Union[DataT, ArrayT], *, out=None) -> Union[DataT, ArrayT]:
+    if inp.ndim == 0:
+        ret = out or zeros(inp.shape)
+        ret._data = round(inp.data)
+        return ret
+
+    ret = out or zeros(inp.shape)
+    for idx, _inp in enumerate(inp):
+        ret[idx] = around(_inp, out=ret[idx])
+    return ret
+
+
+def floor(inp: Union[DataT, ArrayT], *, out=None) -> Union[DataT, ArrayT]:
+    if inp.ndim == 0:
+        ret = out or zeros(inp.shape)
+        ret._data = math.floor(inp.data)
+        return ret
+
+    ret = out or zeros(inp.shape)
+    for idx, _inp in enumerate(inp):
+        ret[idx] = floor(_inp, out=ret[idx])
+    return ret
+
+
+def ceil(inp: Union[DataT, ArrayT], *, out=None) -> Union[DataT, ArrayT]:
+    if inp.ndim == 0:
+        ret = out or zeros(inp.shape)
+        ret._data = math.ceil(inp.data)
+        return ret
+
+    ret = out or zeros(inp.shape)
+    for idx, _inp in enumerate(inp):
+        ret[idx] = ceil(_inp, out=ret[idx])
+    return ret
+
+
+def sqrt(inp: Union[DataT, ArrayT], *, out=None) -> Union[DataT, ArrayT]:
     if inp.ndim == 0:
         ret = out or zeros(inp.shape)
         ret._data = math.sqrt(inp.data)
@@ -164,7 +415,7 @@ def sqrt(inp, *, out=None) -> 'Array':
     return ret
 
 
-def square(inp, *, out=None) -> 'Array':
+def square(inp: Union[DataT, ArrayT], *, out=None) -> Union[DataT, ArrayT]:
     if inp.ndim == 0:
         ret = out or zeros(inp.shape)
         ret._data = inp.data ** 2
@@ -176,7 +427,7 @@ def square(inp, *, out=None) -> 'Array':
     return ret
 
 
-def clip(inp, min_value, max_value, *, out=None) -> 'Array':
+def clip(inp: Union[DataT, ArrayT], min_value: DataT, max_value: DataT, *, out=None) -> Union[DataT, ArrayT]:
     if inp.ndim == 0:
         ret = out or zeros(inp.shape)
         value = inp.data
@@ -193,7 +444,7 @@ def clip(inp, min_value, max_value, *, out=None) -> 'Array':
     return ret
 
 
-def exp(inp, *, out=None) -> 'Array':
+def exp(inp: Union[DataT, ArrayT], *, out=None) -> Union[DataT, ArrayT]:
     if inp.ndim == 0:
         ret = out or zeros(inp.shape)
         ret._data = math.e ** inp.data
@@ -205,7 +456,7 @@ def exp(inp, *, out=None) -> 'Array':
     return ret
 
 
-def tanh(inp, *, out=None) -> 'Array':
+def tanh(inp: Union[DataT, ArrayT], *, out=None) -> Union[DataT, ArrayT]:
     if inp.ndim == 0:
         ret = out or zeros(inp.shape)
         ret._data = math.tan(inp.data)
@@ -217,15 +468,7 @@ def tanh(inp, *, out=None) -> 'Array':
     return ret
 
 
-def argmax(inp, axis=None) -> 'Array':
-    ...
-
-
-def amax(inp, axis=None) -> 'Array':
-    ...
-
-
-def sum(inp, axis=None) -> 'Array':
+def sum(inp: ArrayT, axis=None) -> Union[DataT, ArrayT]:
     if axis is None:
         if inp.ndim == 0:
             return Array(inp.data)
@@ -246,21 +489,17 @@ def sum(inp, axis=None) -> 'Array':
     return s
 
 
-def mean(inp, axis=None) -> 'Array':
+def mean(inp: ArrayT, axis=None) -> Union[DataT, ArrayT]:
     s = sum(inp, axis)
     n = inp.shape[axis] if axis is not None else prod(Array(inp.shape))
     return s / n
 
 
-def median(inp, axis=None) -> 'Array':
+def median(inp: ArrayT, axis=None) -> Union[DataT, ArrayT]:
     ...
 
 
-def std(inp, axis=None) -> 'Array':
-    return sqrt(var(inp, axis=axis))
-
-
-def var(inp, axis=None) -> 'Array':
+def var(inp: ArrayT, axis=None) -> Union[DataT, ArrayT]:
     if axis is not None:
         m_shape = list(inp.shape)
         m_shape[axis] = 1
@@ -271,18 +510,38 @@ def var(inp, axis=None) -> 'Array':
     return mean(absolute(inp - mean(inp)) ** 2)
 
 
-def prod(inp, axis=None) -> 'Array':
+def std(inp: ArrayT, axis=None) -> Union[DataT, ArrayT]:
+    return sqrt(var(inp, axis=axis))
+
+
+def prod(inp: ArrayT, axis=None) -> ArrayT:
     p = 1
     for data in inp.data:
         p *= data.data
     return Array(p)
 
 
-def unique(inp) -> 'Array':
+def unique(inp: ArrayT) -> ArrayT:
     ...
 
 
-def add(inp1, inp2, *, out=None) -> 'Array':
+def argmax(inp: ArrayT, axis=None) -> Union[DataT, ArrayT]:
+    ...
+
+
+def argmin(inp: ArrayT, axis=None) -> Union[DataT, ArrayT]:
+    ...
+
+
+def amax(inp: ArrayT, axis=None) -> Union[DataT, ArrayT]:
+    ...
+
+
+def amin(inp: ArrayT, axis=None) -> Union[DataT, ArrayT]:
+    ...
+
+
+def add(inp1: Union[DataT, ArrayT], inp2: Union[DataT, ArrayT], *, out=None) -> Union[DataT, ArrayT]:
     ret = out or zeros(inp1.shape)
     broadcast = Broadcast(inp1, inp2)
 
@@ -296,35 +555,7 @@ def add(inp1, inp2, *, out=None) -> 'Array':
     return ret
 
 
-def mul(inp1, inp2, *, out=None) -> 'Array':
-    ret = out or zeros(inp1.shape)
-    broadcast = Broadcast(inp1, inp2)
-
-    if inp1.ndim == 0 and inp2.ndim == 0:
-        inp1, inp2 = broadcast.get()
-        ret._data = inp1.data * inp2.data
-        return ret
-
-    for idx, (_inp1, _inp2) in enumerate(broadcast):
-        ret[idx] = mul(_inp1, _inp2, out=ret[idx])
-    return ret
-
-
-def div(inp1, inp2, *, out=None) -> 'Array':
-    ret = out or zeros(inp1.shape)
-    broadcast = Broadcast(inp1, inp2)
-
-    if inp1.ndim == 0 and inp2.ndim == 0:
-        inp1, inp2 = broadcast.get()
-        ret._data = inp1.data / inp2.data
-        return ret
-
-    for idx, (_inp1, _inp2) in enumerate(broadcast):
-        ret[idx] = div(_inp1, _inp2, out=ret[idx])
-    return ret
-
-
-def sub(inp1, inp2, *, out=None) -> 'Array':
+def sub(inp1: Union[DataT, ArrayT], inp2: Union[DataT, ArrayT], *, out=None) -> Union[DataT, ArrayT]:
     ret = out or zeros(inp1.shape)
     broadcast = Broadcast(inp1, inp2)
 
@@ -338,7 +569,49 @@ def sub(inp1, inp2, *, out=None) -> 'Array':
     return ret
 
 
-def power(inp, p, *, out=None) -> 'Array':
+def mul(inp1: Union[DataT, ArrayT], inp2: Union[DataT, ArrayT], *, out=None) -> Union[DataT, ArrayT]:
+    ret = out or zeros(inp1.shape)
+    broadcast = Broadcast(inp1, inp2)
+
+    if inp1.ndim == 0 and inp2.ndim == 0:
+        inp1, inp2 = broadcast.get()
+        ret._data = inp1.data * inp2.data
+        return ret
+
+    for idx, (_inp1, _inp2) in enumerate(broadcast):
+        ret[idx] = mul(_inp1, _inp2, out=ret[idx])
+    return ret
+
+
+def truediv(inp1: Union[DataT, ArrayT], inp2: Union[DataT, ArrayT], *, out=None) -> Union[DataT, ArrayT]:
+    ret = out or zeros(inp1.shape)
+    broadcast = Broadcast(inp1, inp2)
+
+    if inp1.ndim == 0 and inp2.ndim == 0:
+        inp1, inp2 = broadcast.get()
+        ret._data = inp1.data / inp2.data
+        return ret
+
+    for idx, (_inp1, _inp2) in enumerate(broadcast):
+        ret[idx] = truediv(_inp1, _inp2, out=ret[idx])
+    return ret
+
+
+def floordiv(inp1: Union[DataT, ArrayT], inp2: Union[DataT, ArrayT], *, out=None) -> Union[DataT, ArrayT]:
+    ret = out or zeros(inp1.shape)
+    broadcast = Broadcast(inp1, inp2)
+
+    if inp1.ndim == 0 and inp2.ndim == 0:
+        inp1, inp2 = broadcast.get()
+        ret._data = inp1.data // inp2.data
+        return ret
+
+    for idx, (_inp1, _inp2) in enumerate(broadcast):
+        ret[idx] = floor(_inp1, _inp2, out=ret[idx])
+    return ret
+
+
+def power(inp: Union[DataT, ArrayT], p: Union[DataT, ArrayT], *, out=None) -> Union[DataT, ArrayT]:
     if inp.ndim == 0:
         ret = out or zeros(inp.shape)
         ret._data = inp.data ** p
@@ -350,7 +623,7 @@ def power(inp, p, *, out=None) -> 'Array':
     return ret
 
 
-def lt(inp1, inp2, *, out=None) -> 'Array':
+def lt(inp1: Union[DataT, ArrayT], inp2: Union[DataT, ArrayT], *, out=None) -> Union[DataT, ArrayT]:
     if inp1.ndim == 0 and inp2.ndim == 0:
         ret = out or zeros(inp1.shape)
         ret._data = inp1.data < inp2.data
@@ -362,7 +635,7 @@ def lt(inp1, inp2, *, out=None) -> 'Array':
     return ret
 
 
-def le(inp1, inp2, *, out=None) -> 'Array':
+def le(inp1: Union[DataT, ArrayT], inp2: Union[DataT, ArrayT], *, out=None) -> Union[DataT, ArrayT]:
     if inp1.ndim == 0 and inp2.ndim == 0:
         ret = out or zeros(inp1.shape)
         ret._data = inp1.data <= inp2.data
@@ -374,7 +647,7 @@ def le(inp1, inp2, *, out=None) -> 'Array':
     return ret
 
 
-def gt(inp1, inp2, *, out=None) -> 'Array':
+def gt(inp1: Union[DataT, ArrayT], inp2: Union[DataT, ArrayT], *, out=None) -> Union[DataT, ArrayT]:
     if inp1.ndim == 0 and inp2.ndim == 0:
         ret = out or zeros(inp1.shape)
         ret._data = inp1.data > inp2.data
@@ -386,7 +659,7 @@ def gt(inp1, inp2, *, out=None) -> 'Array':
     return ret
 
 
-def ge(inp1, inp2, *, out=None) -> 'Array':
+def ge(inp1: Union[DataT, ArrayT], inp2: Union[DataT, ArrayT], *, out=None) -> Union[DataT, ArrayT]:
     if inp1.ndim == 0 and inp2.ndim == 0:
         ret = out or zeros(inp1.shape)
         ret._data = inp1.data >= inp2.data
@@ -398,7 +671,7 @@ def ge(inp1, inp2, *, out=None) -> 'Array':
     return ret
 
 
-def eq(inp1, inp2, *, out=None) -> 'Array':
+def eq(inp1: Union[DataT, ArrayT], inp2: Union[DataT, ArrayT], *, out=None) -> Union[DataT, ArrayT]:
     if inp1.ndim == 0 and inp2.ndim == 0:
         ret = out or zeros(inp1.shape)
         ret._data = inp1.data == inp2.data
@@ -410,7 +683,7 @@ def eq(inp1, inp2, *, out=None) -> 'Array':
     return ret
 
 
-def ne(inp1, inp2, *, out=None) -> 'Array':
+def ne(inp1: Union[DataT, ArrayT], inp2: Union[DataT, ArrayT], *, out=None) -> Union[DataT, ArrayT]:
     if inp1.ndim == 0 and inp2.ndim == 0:
         ret = out or zeros(inp1.shape)
         ret._data = inp1.data != inp2.data
@@ -422,163 +695,5 @@ def ne(inp1, inp2, *, out=None) -> 'Array':
     return ret
 
 
-def dot(inp1, inp2, *, out=None) -> 'Array':
+def dot(inp1: ArrayT, inp2: ArrayT, *, out=None) -> ArrayT:
     ...
-
-
-def repeat(inp, count, axis=0) -> 'Array':
-    ret = []
-    for _ in range(count):
-        ret.append(inp.list())
-    return Array(ret)
-
-
-def concatenate(inputs) -> 'Array':
-    ...
-
-
-def stack(inputs) -> 'Array':
-    ...
-
-
-def split(inp, chunks, dim=0) -> 'Array':
-    ...
-
-
-def squeeze(inp, axis) -> 'Array':
-    ...
-
-
-def expand_dims(inp, axis) -> 'Array':
-    ...
-
-
-def reshape(inp, shape) -> 'Array':
-    flat = flatten(inp)
-
-    subdims = shape[1:]
-    subsize = prod(Array(subdims)).data
-    if shape[0] * subsize != len(flat):
-        raise ValueError('size does not match or invalid')
-    if not subdims:
-        return flat
-    return Array([reshape(flat[i: i + subsize], subdims) for i in range(0, len(flat), subsize)])
-
-
-def flatten(inp) -> 'Array':
-    if inp.ndim == 0:
-        return Array([inp.data])
-
-    ret = []
-    for data in inp.data:
-        ret += flatten(data).data
-    return Array(ret)
-
-
-def transpose(inp, axes) -> 'Array':
-    ...
-
-
-def pad(inp, padding, mode) -> 'Array':
-    ...
-
-
-def indices(dimensions) -> 'Array':
-    ...
-
-
-def where(condition) -> 'Array':
-    ...
-
-
-def take_along_axis(inp, indexes, axis) -> 'Array':
-    ...
-
-
-def put_along_axis(inp, indexes, values, axis) -> 'Array':
-    ...
-
-
-def arange(start, stop, step) -> 'Array':
-    ...
-
-
-def linspace(start, stop, steps) -> 'Array':
-    ...
-
-
-def eye(rows, columns) -> 'Array':
-    ...
-
-
-def empty(shape) -> 'Array':
-    if len(shape) == 0:
-        return Array(0)
-
-    ret = []
-    for _ in range(shape[0]):
-        ret.append(zeros(shape[1:]))
-    return Array(ret)
-
-
-def full(shape) -> 'Array':
-    if len(shape) == 0:
-        return Array(1)
-
-    ret = []
-    for _ in range(shape[0]):
-        ret.append(ones(shape[1:]))
-    return Array(ret)
-
-
-def zeros(shape) -> 'Array':
-    if len(shape) == 0:
-        return Array(0)
-
-    ret = []
-    for _ in range(shape[0]):
-        ret.append(zeros(shape[1:]))
-    return Array(ret)
-
-
-def ones(shape) -> 'Array':
-    if len(shape) == 0:
-        return Array(1)
-
-    ret = []
-    for _ in range(shape[0]):
-        ret.append(ones(shape[1:]))
-    return Array(ret)
-
-
-def ones_like(inp) -> 'Array':
-    return ones(inp.shape)
-
-
-def zeros_like(inp) -> 'Array':
-    return zeros(inp.shape)
-
-
-def copy(inp) -> 'Array':
-    return deepcopy(inp)
-
-
-def asarray(arr) -> 'Array':
-    return Array(arr)
-
-
-def astype(dtype) -> 'Array':
-    ...
-
-#
-#
-# def get_item(inp, indexes) -> 'NDArray':
-#     ...
-#
-#
-# def set_item(inp, indexes, values) -> 'NDArray':
-#     ...
-#
-#
-# def index_with_booleans(inp, indexes) -> 'NDArray':
-#     ...

@@ -1,23 +1,33 @@
-from typing import (
-    Tuple,
-    Union
+from .data import (
+    boolean,
+    floating,
+    integer
 )
 
 
 class Array:
     def __init__(self, data=None):
-        if isinstance(data, (tuple, list)):
+        if isinstance(data, (tuple, list, Array)):
             self._data = []
             for _data in data:
-                # check lengths
-                self._data.append(Array(_data))
-        elif isinstance(data, (int, float, bool)):
-            self._data = data
-        elif isinstance(data, Array):
-            # need to copy not assign
-            self._data = data._data
+                if isinstance(_data, bool):
+                    self._data.append(boolean(_data))
+                elif isinstance(_data, boolean):
+                    self._data.append(_data.copy())
+                elif isinstance(_data, int):
+                    self._data.append(integer(_data))
+                elif isinstance(_data, integer):
+                    self._data.append(_data.copy())
+                elif isinstance(_data, float):
+                    self._data.append(floating(_data))
+                elif isinstance(_data, floating):
+                    self._data.append(_data.copy())
+                else:
+                    self._data.append(Array(_data))
+        elif isinstance(data, (bool, boolean, int, integer, float, floating)):
+            raise ValueError(f'Array type cannot be instantiated from {type(data)} type')
         else:
-            raise ValueError(f'data type has to be one of the following (tuple, list, int, float, bool) not {type(data)}')
+            raise ValueError(f'data type has to be one of the following (tuple, list, Array) not {type(data)}')
 
         self._device = 'cpu'
         self._dtype = 'float32'
@@ -26,12 +36,11 @@ class Array:
         return str(self)
 
     def __str__(self):
-        if isinstance(self._data, (int, float, bool)):
-            return f'{self._data}'
+        data = f'{self.data}'
+        dtype = f'{self.dtype}'
+        shape = f'{self.shape}'
 
-        data = f'{self._data}'
-
-        str_list = [data]
+        str_list = [data, dtype, shape]
         str_list = list(filter(lambda parameter: parameter != '', str_list))
         string = ', '.join(str_list)
 
@@ -41,49 +50,38 @@ class Array:
         return True
 
     def __copy__(self):
-        pass
+        return self.copy()
 
     def __deepcopy__(self, memodict=None):
-        memodict = memodict or {}
-        if isinstance(self._data, (int, float, bool)):
-            return Array(self._data)
-        ret = []
-        for data in self._data:
-            ret.append(data.copy())
-        return Array(ret)
+        return self.copy()
+
+    def __iter__(self):
+        for data in self.data:
+            yield data
 
     def __len__(self):
-        return len(self._data)
+        return len(self.data)
 
-    def __getitem__(self, item: Union[int, slice, Tuple[Union[int, slice]]]):
-        if isinstance(self._data, (tuple, list)):
-            if isinstance(item, int):
-                return Array(self._data[item].list())
-            elif isinstance(item, slice):
-                ret = []
-                for data in self._data[item]:
-                    if isinstance(data.data, (int, float, bool)):
-                        ret.append(data.data)
-                    else:
-                        ret.append(data.data.list())
-                return Array(ret)
-            elif isinstance(item, tuple) and len(item) == 1:
-                return Array(self._data[item[0]])
-            elif isinstance(item, tuple):
-                ret = []
-                if isinstance(item[0], int):
-                    return self._data[item[0]][item[1:]]
-                elif isinstance(item[0], slice):
-                    for data in self._data[item[0]]:
-                        ret.append(data[item[1:]])
-                return Array(ret)
-        raise ValueError('you cannot index primitive type')
+    def __getitem__(self, idx):
+        return self.getitem(idx)
 
     def __setitem__(self, key, value):
-        if isinstance(self._data, (tuple, list)):
-            self._data[key] = value
-            return
-        raise ValueError('you cannot index primitive type')
+        self.setitem(key, value)
+
+    def __abs__(self):
+        return self.abs()
+
+    def __neg__(self):
+        return self.negative()
+
+    def __round__(self, n=None):
+        pass
+
+    def __floor__(self):
+        pass
+
+    def __ceil__(self):
+        pass
 
     def __add__(self, other):
         return self.add(other)
@@ -104,19 +102,22 @@ class Array:
         return self.mul(other, out=self)
 
     def __truediv__(self, other):
-        return self.div(other)
+        return self.truediv(other)
 
     def __itruediv__(self, other):
-        return self.div(other, out=self)
+        return self.truediv(other, out=self)
+
+    def __floordiv__(self, other):
+        return self.floordiv(other)
+
+    def __ifloordiv__(self, other):
+        return self.floordiv(other, out=self)
 
     def __pow__(self, power, modulo=None):
         return self.power(power)
 
     def __ipow__(self, other):
         return self.power(other, out=self)
-
-    def __neg__(self):
-        return self.negative()
 
     def __lt__(self, other):
         return self.lt(other)
@@ -136,6 +137,126 @@ class Array:
     def __ne__(self, other):
         return self.ne(other)
 
+    def copy(self):
+        ...
+
+    def repeat(self):
+        ...
+
+    def split(self):
+        ...
+
+    def tolist(self):
+        ...
+
+    def getitem(self, idx):
+        ...
+
+    def take_along_axis(self):
+        ...
+
+    def setitem(self, idx, value):
+        ...
+
+    def put_along_axis(self):
+        ...
+
+    def where(self):
+        ...
+
+    def indices(self):
+        ...
+
+    def dim(self):
+        ...
+
+    def size(self, dim=None):
+        ...
+
+    def flatten(self):
+        ...
+
+    def reshape(self, size):
+        ...
+
+    def squeeze(self):
+        ...
+
+    def expand_dims(self):
+        ...
+
+    def pad(self):
+        ...
+
+    def transpose(self):
+        ...
+
+    def fill(self, value):
+        ...
+
+    def abs(self):
+        ...
+
+    def negative(self, *, out=None):
+        ...
+
+    def round(self, *, out=None):
+        ...
+
+    def floor(self, *, out=None):
+        ...
+
+    def ceil(self, *, out=None):
+        ...
+
+    def sqrt(self, *, out=None):
+        ...
+
+    def square(self, *, out=None):
+        ...
+
+    def clip(self, min_value, max_value, *, out=None):
+        ...
+
+    def exp(self, *, out=None):
+        ...
+
+    def tanh(self, *, out=None):
+        ...
+
+    def sum(self):
+        ...
+
+    def mean(self):
+        ...
+
+    def median(self):
+        ...
+
+    def var(self):
+        ...
+
+    def std(self):
+        ...
+
+    def prod(self):
+        ...
+
+    def unique(self):
+        ...
+
+    def argmax(self):
+        ...
+
+    def argmin(self):
+        ...
+
+    def amax(self):
+        ...
+
+    def amin(self):
+        ...
+
     def add(self, other, *, out=None):
         ...
 
@@ -145,13 +266,13 @@ class Array:
     def mul(self, other, *, out=None):
         ...
 
-    def div(self, other, *, out=None):
+    def truediv(self, other, *, out=None):
+        ...
+
+    def floordiv(self, other, *, out=None):
         ...
 
     def power(self, p, *, out=None):
-        ...
-
-    def negative(self, *, out=None):
         ...
 
     def lt(self, other):
@@ -172,24 +293,6 @@ class Array:
     def ne(self, other):
         ...
 
-    def reshape(self, size):
-        ...
-
-    def fill(self, value):
-        ...
-
-    def copy(self):
-        ...
-
-    def list(self):
-        if self.ndim == 0:
-            return self._data
-
-        ret = []
-        for data in self._data:
-            ret.append(data.list())
-        return ret
-
     @property
     def device(self):
         return self._device
@@ -198,25 +301,13 @@ class Array:
     def data(self):
         return self._data
 
-    def size(self, dim=None) -> Union[tuple, int]:
-        if dim is None:
-            return self.shape
-        return self.shape[dim]
-
-    def dim(self) -> int:
-        return len(self.shape)
+    @property
+    def ndim(self):
+        return self.dim()
 
     @property
-    def shape(self) -> tuple:
-        if isinstance(self._data, (tuple, list)):
-            return tuple([len(self._data)] + list(self._data[0].shape))
-        return ()
-
-    @property
-    def ndim(self) -> int:
-        if isinstance(self._data, (tuple, list)):
-            return self._data[0].ndim + 1
-        return 0
+    def shape(self):
+        return self.size()
 
     @property
     def dtype(self):

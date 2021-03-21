@@ -17,6 +17,15 @@ class Shape:
         for s in self._shape:
             yield s
 
+    def __getitem__(self, item):
+        return self._shape[item]
+
+    def prod(self):
+        ret = 1
+        for x in self._shape:
+            ret *= x
+        return ret
+
     def tuple(self):
         return tuple(self._shape)
 
