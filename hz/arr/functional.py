@@ -480,7 +480,6 @@ def transpose(inp: Union[DataT, ArrayT], axes=None) -> ArrayT:
 
 
 def fill(inp: ArrayT, value: DataT) -> ArrayT:
-    # should use set item and get item
     shape = size(inp)
     flat_array = flatten(inp)
     for idx in range(len(flat_array)):
