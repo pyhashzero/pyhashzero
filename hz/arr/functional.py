@@ -41,7 +41,7 @@ class Broadcast:
 
         # first parameter is NDArray, second parameter is float, int, bool
         if inp1.ndim != 0 and inp2.ndim == 0:
-            inp2 = reshape(repeat(inp2, prod(Array(inp1.shape)).data), inp1.shape)
+            inp2 = reshape(repeat(inp2, prod(Array(inp1.shape))), inp1.shape)
 
         # both parameters are NDArray
         if inp1.ndim != 0 and inp2.ndim != 0 and inp1.ndim != inp2.ndim:
@@ -239,7 +239,10 @@ def repeat(inp: Union[DataT, ArrayT], count: DataT, axis=0) -> ArrayT:
     # need to use axis
     ret = []
     for _ in range(count):
-        ret.append(tolist(inp))
+        if isinstance(inp, (bool, boolean, int, integer, int16, int32, int64, float, floating, float16, float32, float64)):
+            ret.append(inp)
+        elif isinstance(inp, (tuple, list, Array)):
+            ret.append(tolist(inp))
     return Array(ret)
 
 
@@ -306,8 +309,46 @@ def take_along_axis(inp: Union[DataT, ArrayT], indexes, axis) -> ArrayT:
     ...
 
 
-def setitem(inp: ArrayT, idx, value):
-    inp.data[idx] = copy(value)
+def setitem(inp: ArrayT, idx: IndexT, value: Union[DataT, ArrayT]):
+    if isinstance(value, (bool, int, float)):
+        inp_shape = size(inp)
+        inp_size = prod(inp_shape)
+        new_value = reshape(repeat(value, inp_size), inp_shape)
+    elif isinstance(value, (boolean, integer, int16, int32, int64, floating, float16, float32, float64)):
+        inp_shape = size(inp)
+        inp_size = prod(inp_shape)
+        new_value = reshape(repeat(value, inp_size), inp_shape)
+    elif isinstance(value, Array):
+        if size(inp) != size(value):
+            raise ValueError(f'{size(inp)} and {size(value)} does not match')
+        new_value = copy(value)
+    else:
+        raise ValueError(f'{type(value)} is not recognized as value type')
+
+    if isinstance(inp, (tuple, list)):
+        if isinstance(idx, int):
+            inp[idx] = new_value[idx]
+        elif isinstance(idx, slice):
+            for _idx in range(idx.start, idx.stop, idx.step):
+                inp[_idx] = new_value[_idx]
+        elif isinstance(idx, (tuple, list)) and len(idx) == 1:
+            inp[idx[0]] = new_value[idx[0]]
+        elif isinstance(idx, (tuple, list)):
+            if isinstance(idx[0], int):
+                setitem(inp[idx[0]], idx[1:], new_value[idx[0]])
+            elif isinstance(idx[0], slice):
+                for _idx in range(idx[0].start, idx[0].stop, idx[0].step):
+                    setitem(inp[_idx], idx[1:], new_value[_idx])
+            else:
+                raise ValueError(f'{type(idx[0])} type is not recognized as index')
+        else:
+            raise ValueError(f'{type(idx)} type is not recognized as index')
+    elif isinstance(inp, Array):
+        list_inp = tolist(inp)
+        setitem(list_inp, idx, new_value)
+        return Array(list_inp)
+    else:
+        raise ValueError(f'object type {type(inp)} is not recognized')
 
 
 def put_along_axis(inp: Union[DataT, ArrayT], indexes, values, axis) -> ArrayT:
@@ -342,7 +383,9 @@ def flatten(inp: ArrayT) -> ArrayT:
 
     ret = []
     for data in inp:
-        if dim(data) == 1:
+        if dim(data) == 0:
+            ret.append(data)
+        elif dim(data) == 1:
             ret += tolist(data)
         else:
             ret += tolist(flatten(data))
@@ -353,7 +396,7 @@ def reshape(inp: ArrayT, shape) -> ArrayT:
     flat = flatten(inp)
 
     subdims = shape[1:]
-    subsize = prod(Array(subdims)).data
+    subsize = prod(Array(subdims))
     if shape[0] * subsize != len(flat):
         raise ValueError('size does not match or invalid')
     if not subdims:
@@ -572,11 +615,15 @@ def std(inp: ArrayT, axis=None) -> Union[DataT, ArrayT]:
     return sqrt(var(inp, axis=axis))
 
 
-def prod(inp: ArrayT, axis=None) -> ArrayT:
+def prod(inp: ArrayT, axis=None) -> int:
     p = 1
-    for data in inp.data:
-        p *= data.data
-    return Array(p)
+    if isinstance(inp, (tuple, list)):
+        for data in inp:
+            p *= data
+    elif isinstance(inp, Array):
+        for data in inp.data:
+            p *= data.data
+    return p
 
 
 def unique(inp: ArrayT) -> ArrayT:
