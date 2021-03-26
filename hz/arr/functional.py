@@ -481,26 +481,11 @@ def transpose(inp: Union[DataT, ArrayT], axes=None) -> ArrayT:
 
 def fill(inp: ArrayT, value: DataT) -> ArrayT:
     # should use set item and get item
-    if isinstance(value, bool):
-        value = boolean(value)
-    elif isinstance(value, int):
-        value = integer(value)
-    elif isinstance(value, float):
-        value = floating(value)
-    elif isinstance(value, (boolean, integer, int16, int32, int64, floating, float16, float32, float64)):
-        pass
-    else:
-        raise ValueError('value type has to be following: bool, boolean, int, integer, int16, int32, int64, float, floating, float16, float32, float64')
-
-    for idx in range(len(inp)):
-        data_type = type(inp[idx])
-        if isinstance(inp[idx], (bool, int, float)):
-            inp[idx] = data_type(copy(value.data))
-        elif isinstance(inp[idx], (boolean, integer, int16, int32, int64, floating, float16, float32, float64)):
-            inp[idx] = data_type(copy(value))
-        else:
-            inp[idx] = fill(inp[idx], value)
-    return inp
+    shape = size(inp)
+    flat_array = flatten(inp)
+    for idx in range(len(flat_array)):
+        flat_array = setitem(flat_array, idx, value)
+    return reshape(flat_array, shape)
 
 
 def absolute(inp: Union[DataT, ArrayT], *, out=None) -> Union[DataT, ArrayT]:
