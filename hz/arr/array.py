@@ -39,10 +39,11 @@ class Array:
 
     def __str__(self):
         data = f'{self.data}'
-        dtype = f'{self.dtype}'
-        shape = f'{self.shape}'
+        # dtype = f'{self.dtype}'
+        # shape = f'{self.shape}'
 
-        str_list = [data, dtype, shape]
+        # str_list = [data, dtype, shape]
+        str_list = [data]
         str_list = list(filter(lambda parameter: parameter != '', str_list))
         string = ', '.join(str_list)
 
@@ -305,6 +306,11 @@ class Array:
     @property
     def data(self):
         return self._data
+
+    # noinspection PyPep8Naming
+    @property
+    def T(self):
+        return self.transpose()
 
     @property
     def ndim(self):

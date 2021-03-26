@@ -184,7 +184,10 @@ def zeros(shape) -> Array:
 
     ret = []
     for _ in range(shape[0]):
-        ret.append(zeros(shape[1:]))
+        if len(shape[1:]) == 0:
+            ret.append(floating(0))
+        else:
+            ret.append(zeros(shape[1:]))
     return Array(ret)
 
 
@@ -343,6 +346,8 @@ def setitem(inp: ArrayT, idx: IndexT, value: Union[DataT, ArrayT]):
                 raise ValueError(f'{type(idx[0])} type is not recognized as index')
         else:
             raise ValueError(f'{type(idx)} type is not recognized as index')
+        # does not work when not returning
+        return inp
     elif isinstance(inp, Array):
         list_inp = tolist(inp)
         setitem(list_inp, idx, new_value)
@@ -431,8 +436,47 @@ def pad(inp: Union[DataT, ArrayT], padding, mode) -> ArrayT:
     ...
 
 
-def transpose(inp: Union[DataT, ArrayT], axes) -> ArrayT:
-    ...
+def transpose(inp: Union[DataT, ArrayT], axes=None) -> ArrayT:
+    def multi_to_one(idx, s):
+        r = 0
+        for i, _idx in enumerate(idx):
+            r += (prod(s[i + 1:]) * _idx)
+        return r
+
+    def one_to_multi(idx, s):
+        r = []
+        for i in range(len(s)):
+            div, mod = divmod(idx, prod(s[i + 1:]))
+            r.append(div)
+            idx = mod
+        return r
+
+    if axes is None:
+        if dim(inp) != 2:
+            raise ValueError(f'axes has to be used on {dim(inp)}-dim array')
+        axes = (1, 0)
+
+    shape = size(inp)
+    new_shape = []
+    for axis in axes:
+        new_shape.append(shape[axis])
+    new_shape = tuple(new_shape)
+
+    new_flatten = flatten(zeros(new_shape))
+    old_flatten = flatten(inp)
+
+    for flat_idx in range(len(old_flatten)):
+        old_multi = one_to_multi(flat_idx, shape)
+        new_multi = []
+        for axis in axes:
+            new_multi.append(old_multi[axis])
+
+        old_flat_idx = multi_to_one(old_multi, shape)
+        new_flat_idx = multi_to_one(new_multi, new_shape)
+
+        new_flatten = setitem(new_flatten, new_flat_idx, getitem(old_flatten, old_flat_idx))
+
+    return reshape(new_flatten, new_shape)
 
 
 def fill(inp: ArrayT, value: DataT) -> ArrayT:
