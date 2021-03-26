@@ -1,6 +1,7 @@
 from .array import Array
 from .functional import *
 
+Array.astype = astype
 Array.copy = copy
 Array.repeat = repeat
 Array.split = split

@@ -23,6 +23,8 @@ class Array:
                 elif isinstance(_data, floating):
                     self._data.append(_data.copy())
                 else:
+                    # instead of creating Array object instance, try using list or tuple
+                    # when using __getitem__ Array can be created
                     self._data.append(Array(_data))
         elif isinstance(data, (bool, boolean, int, integer, float, floating)):
             raise ValueError(f'Array type cannot be instantiated from {type(data)} type')
@@ -37,10 +39,11 @@ class Array:
 
     def __str__(self):
         data = f'{self.data}'
-        dtype = f'{self.dtype}'
-        shape = f'{self.shape}'
+        # dtype = f'{self.dtype}'
+        # shape = f'{self.shape}'
 
-        str_list = [data, dtype, shape]
+        # str_list = [data, dtype, shape]
+        str_list = [data]
         str_list = list(filter(lambda parameter: parameter != '', str_list))
         string = ', '.join(str_list)
 
@@ -136,6 +139,9 @@ class Array:
 
     def __ne__(self, other):
         return self.ne(other)
+
+    def astype(self, dtype):
+        ...
 
     def copy(self):
         ...
@@ -300,6 +306,11 @@ class Array:
     @property
     def data(self):
         return self._data
+
+    # noinspection PyPep8Naming
+    @property
+    def T(self):
+        return self.transpose()
 
     @property
     def ndim(self):
