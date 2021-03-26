@@ -27,7 +27,7 @@ DataT = Union[BooleanT, IntegerT, FloatingT]
 ArrayT = Union[Tuple[DataT], List[DataT], Array, Tuple['ArrayT'], List['ArrayT']]
 TypeT = Union[str]
 ShapeT = Union[Tuple[int], List[int], Shape]
-IndexT = Union[int, slice, Tuple[Union[int, slice]]]
+IndexT = Union[int, slice, Tuple[Union[int, slice], ...]]
 
 
 class Broadcast:
@@ -94,6 +94,35 @@ class Broadcast:
             self.zip = None
 
 
+def _get_type(dtype: DataT):
+    if dtype == 'bool':
+        return bool
+    elif dtype == 'boolean':
+        return boolean
+    elif dtype == 'int':
+        return int
+    elif dtype == 'integer':
+        return integer
+    elif dtype == 'int16':
+        return int16
+    elif dtype == 'int32':
+        return int32
+    elif dtype == 'int64':
+        return int64
+    elif dtype == 'float':
+        return float
+    elif dtype == 'floating':
+        return floating
+    elif dtype == 'float16':
+        return float16
+    elif dtype == 'float32':
+        return float32
+    elif dtype == 'float64':
+        return float64
+    else:
+        raise ValueError(f'{dtype} is not recognized')
+
+
 def _normalize_value(value: DataT) -> DataT:
     if isinstance(value, bool):
         value = boolean(value)
@@ -112,23 +141,24 @@ def asarray(arr: ArrayT) -> ArrayT:
     return Array(arr)
 
 
-def astype(inp: Union[DataT, ArrayT], dtype: DataT) -> Union[DataT, ArrayT]:
-    ...
+def arange(start: float, stop: float, step: float) -> Array:
+    return linspace(start, stop, int((stop - start) // step))
 
 
-def arange(start, stop, step) -> ArrayT:
-    ...
+def linspace(start: float, stop: float, steps: int) -> Array:
+    inc = (stop - start) / steps
+    return Array([start + inc * idx for idx in range(steps)])
 
 
-def linspace(start, stop, steps) -> ArrayT:
-    ...
+def eye(rows: int, columns: int) -> Array:
+    ret = zeros((rows, columns))
+    for row in range(rows):
+        if row < columns:
+            ret[row][row] = 1
+    return ret
 
 
-def eye(rows, columns) -> ArrayT:
-    ...
-
-
-def empty(shape) -> ArrayT:
+def empty(shape) -> Array:
     if len(shape) == 0:
         raise ValueError('array shape has to be at least 1-dimensional')
 
@@ -138,7 +168,7 @@ def empty(shape) -> ArrayT:
     return Array(ret)
 
 
-def full(shape) -> ArrayT:
+def full(shape) -> Array:
     if len(shape) == 0:
         raise ValueError('array shape has to be at least 1-dimensional')
 
@@ -148,7 +178,7 @@ def full(shape) -> ArrayT:
     return Array(ret)
 
 
-def zeros(shape) -> ArrayT:
+def zeros(shape) -> Array:
     if len(shape) == 0:
         raise ValueError('array shape has to be at least 1-dimensional')
 
@@ -158,7 +188,7 @@ def zeros(shape) -> ArrayT:
     return Array(ret)
 
 
-def ones(shape) -> ArrayT:
+def ones(shape) -> Array:
     if len(shape) == 0:
         raise ValueError('array shape has to be at least 1-dimensional')
 
@@ -168,11 +198,11 @@ def ones(shape) -> ArrayT:
     return Array(ret)
 
 
-def ones_like(inp: ArrayT) -> ArrayT:
+def ones_like(inp: ArrayT) -> Array:
     return ones(size(inp))
 
 
-def zeros_like(inp: ArrayT) -> ArrayT:
+def zeros_like(inp: ArrayT) -> Array:
     return zeros(size(inp))
 
 
@@ -182,6 +212,18 @@ def concatenate(inputs) -> ArrayT:
 
 def stack(inputs) -> ArrayT:
     ...
+
+
+def astype(inp: Union[DataT, ArrayT], dtype: DataT) -> Union[DataT, ArrayT]:
+    if isinstance(inp, (bool, boolean, int, integer, int16, int32, int64, float, floating, float16, float32, float64)):
+        return _get_type(dtype)(inp)
+    elif isinstance(inp, (tuple, list, Array)):
+        ret = []
+        for data in inp:
+            ret.append(astype(data, dtype))
+        return type(inp)(ret)
+    else:
+        raise ValueError('value type is not recognized')
 
 
 def copy(inp: Union[DataT, ArrayT]) -> Union[DataT, ArrayT]:
@@ -194,14 +236,24 @@ def copy(inp: Union[DataT, ArrayT]) -> Union[DataT, ArrayT]:
 
 
 def repeat(inp: Union[DataT, ArrayT], count: DataT, axis=0) -> ArrayT:
+    # need to use axis
     ret = []
     for _ in range(count):
-        ret.append(inp.tolist())
+        ret.append(tolist(inp))
     return Array(ret)
 
 
 def split(inp: ArrayT, chunks, axis=0) -> ArrayT:
-    ...
+    # need to use axis
+    length = len(inp)
+    chunk_length = length // chunks
+    if chunk_length * chunks != length:
+        raise ValueError(f'array with length {length} cannot be divided into {chunks} chunks')
+
+    ret = []
+    for chunk in range(chunks):
+        ret.append(inp[chunk * chunk_length: (chunk + 1) * chunk_length])
+    return type(inp)(ret)
 
 
 def tolist(inp: ArrayT) -> list:
@@ -219,29 +271,35 @@ def tolist(inp: ArrayT) -> list:
 
 
 def getitem(inp: ArrayT, idx: IndexT):
-    if isinstance(idx, int):
-        return copy(inp.data[idx])
-
-    elif isinstance(idx, slice):
-        ret = []
-        for data in inp.data[idx]:
-            if isinstance(data.data, (boolean, integer, floating)):
-                ret.append(data.data)
-            else:
-                ret.append(data.data.list())
+    if isinstance(inp, (tuple, list)):
+        if isinstance(idx, int):
+            return copy(inp[idx])
+        elif isinstance(idx, slice):
+            ret = []
+            for data in inp[idx]:
+                ret.append(data)
+            return type(inp)(ret)
+        elif isinstance(idx, (tuple, list)) and len(idx) == 1:
+            ret = inp[idx[0]]
+            if isinstance(ret, (bool, int, float)):
+                return ret
+            elif isinstance(ret, (tuple, list, Array)):
+                return type(inp)(ret)
+        elif isinstance(idx, (tuple, list)):
+            ret = []
+            if isinstance(idx[0], int):
+                return getitem(inp[idx[0]], idx[1:])
+            elif isinstance(idx[0], slice):
+                for data in inp[idx[0]]:
+                    ret.append(getitem(data, idx[1:]))
+            return type(inp)(ret)
+    elif isinstance(inp, Array):
+        ret = getitem(tolist(inp), idx)
+        if isinstance(ret, (bool, boolean, int, integer, int16, int32, int64, float, floating, float16, float32, float64)):
+            return ret
         return Array(ret)
-
-    elif isinstance(idx, tuple) and len(idx) == 1:
-        return Array(inp.data[idx[0]])
-
-    elif isinstance(idx, tuple):
-        ret = []
-        if isinstance(idx[0], int):
-            return inp.data[idx[0]][idx[1:]]
-        elif isinstance(idx[0], slice):
-            for data in inp.data[idx[0]]:
-                ret.append(data[idx[1:]])
-        return Array(ret)
+    else:
+        raise ValueError(f'object type {type(inp)} is not recognized')
 
 
 def take_along_axis(inp: Union[DataT, ArrayT], indexes, axis) -> ArrayT:
@@ -271,12 +329,12 @@ def dim(inp: Union[DataT, ArrayT]) -> int:
 
 
 def size(inp: Union[DataT, ArrayT], axis=None):
-    if isinstance(inp, (boolean, integer, floating)):
+    if isinstance(inp, (bool, boolean, int, integer, int16, int32, int64, float, floating, float16, float32, float64)):
         return ()
 
     if axis is None or axis < 0:
         return tuple([len(inp)] + list(size(inp[0])))
-    return tuple((size(inp[0], axis=axis-1)))
+    return tuple((size(inp[0], axis=axis - 1)))
 
 
 def flatten(inp: ArrayT) -> ArrayT:

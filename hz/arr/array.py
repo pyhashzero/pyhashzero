@@ -137,6 +137,9 @@ class Array:
     def __ne__(self, other):
         return self.ne(other)
 
+    def astype(self, dtype):
+        ...
+
     def copy(self):
         ...
 
