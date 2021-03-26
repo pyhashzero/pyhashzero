@@ -404,12 +404,27 @@ def reshape(inp: ArrayT, shape) -> ArrayT:
     return Array([reshape(flat[i: i + subsize], subdims) for i in range(0, len(flat), subsize)])
 
 
-def squeeze(inp: ArrayT, axis) -> ArrayT:
-    ...
+def squeeze(inp: ArrayT, axis=None) -> ArrayT:
+    if axis is None:
+        if any([x == 1 for x in size(inp)]):
+            new_shape = tuple(filter(lambda x: x != 1, size(inp)))
+        else:
+            new_shape = size(inp)
+    else:
+        axis_size = size(inp, axis)
+        if axis_size != 1:
+            raise ValueError('cannot select an axis to squeeze out which has size not equal to one')
+        new_shape = list(size(inp))
+        new_shape.pop(axis)
+
+    return reshape(inp, new_shape)
 
 
 def expand_dims(inp: ArrayT, axis) -> ArrayT:
-    ...
+    shape = list(size(inp))
+    shape.insert(axis, 1)
+
+    return reshape(inp, shape)
 
 
 def pad(inp: Union[DataT, ArrayT], padding, mode) -> ArrayT:

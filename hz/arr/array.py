@@ -23,6 +23,8 @@ class Array:
                 elif isinstance(_data, floating):
                     self._data.append(_data.copy())
                 else:
+                    # instead of creating Array object instance, try using list or tuple
+                    # when using __getitem__ Array can be created
                     self._data.append(Array(_data))
         elif isinstance(data, (bool, boolean, int, integer, float, floating)):
             raise ValueError(f'Array type cannot be instantiated from {type(data)} type')
