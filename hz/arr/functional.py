@@ -94,7 +94,7 @@ class Broadcast:
             self.zip = None
 
 
-def _get_type(dtype: DataT):
+def _get_type(dtype: TypeT):
     if dtype == 'bool':
         return bool
     elif dtype == 'boolean':
@@ -217,7 +217,7 @@ def stack(inputs) -> ArrayT:
     ...
 
 
-def astype(inp: Union[DataT, ArrayT], dtype: DataT) -> Union[DataT, ArrayT]:
+def astype(inp: Union[DataT, ArrayT], dtype: TypeT) -> Union[DataT, ArrayT]:
     if isinstance(inp, (bool, boolean, int, integer, int16, int32, int64, float, floating, float16, float32, float64)):
         return _get_type(dtype)(inp)
     elif isinstance(inp, (tuple, list, Array)):
@@ -568,18 +568,20 @@ def tanh(inp: Union[DataT, ArrayT], *, out=None) -> Union[DataT, ArrayT]:
 
 def sum(inp: ArrayT, axis=None) -> Union[DataT, ArrayT]:
     if axis is None:
-        if inp.ndim == 0:
-            return Array(inp.data)
+        if dim(inp) == 0:
+            return astype(copy(inp), 'floating')
 
-        ret = Array(0)
+        ret = floating(0)
         for idx in range(len(inp)):
             ret += sum(inp[idx], axis=axis)
         return ret
 
     # kahan sum
-    s = zeros(inp.shape[:axis] + inp.shape[axis + 1:])
-    c = zeros(s.shape)
-    for i in range(inp.shape[axis]):
+    shape = size(inp)
+    s = zeros(shape[:axis] + shape[axis + 1:])
+    c = zeros(size(s))
+    for i in range(shape[axis]):
+        # y = getitem(inp, (slice(None),) * axis + (i,)) - c  # inp[(slice(None),) * axis + (i,)] - c
         y = inp[(slice(None),) * axis + (i,)] - c
         t = s + y
         c = (t - s) - y
@@ -588,8 +590,9 @@ def sum(inp: ArrayT, axis=None) -> Union[DataT, ArrayT]:
 
 
 def mean(inp: ArrayT, axis=None) -> Union[DataT, ArrayT]:
+    shape = size(inp)
     s = sum(inp, axis)
-    n = inp.shape[axis] if axis is not None else prod(Array(inp.shape))
+    n = shape[axis] if axis is not None else prod(shape)
     return s / n
 
 
@@ -599,7 +602,7 @@ def median(inp: ArrayT, axis=None) -> Union[DataT, ArrayT]:
 
 def var(inp: ArrayT, axis=None) -> Union[DataT, ArrayT]:
     if axis is not None:
-        m_shape = list(inp.shape)
+        m_shape = list(size(inp))
         m_shape[axis] = 1
         m = reshape(mean(inp, axis), m_shape)
         a = absolute(inp - m)
@@ -613,6 +616,7 @@ def std(inp: ArrayT, axis=None) -> Union[DataT, ArrayT]:
 
 
 def prod(inp: ArrayT, axis=None) -> int:
+    # could be multi dimensional
     p = 1
     if isinstance(inp, (tuple, list)):
         for data in inp:
