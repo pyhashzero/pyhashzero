@@ -313,6 +313,7 @@ def take_along_axis(inp: Union[DataT, ArrayT], indexes, axis) -> ArrayT:
 
 
 def setitem(inp: ArrayT, idx: IndexT, value: Union[DataT, ArrayT]):
+    # need to repeat inp[idx].shape times
     if isinstance(value, (bool, int, float)):
         inp_shape = size(inp)
         inp_size = prod(inp_shape)
@@ -321,6 +322,10 @@ def setitem(inp: ArrayT, idx: IndexT, value: Union[DataT, ArrayT]):
         inp_shape = size(inp)
         inp_size = prod(inp_shape)
         new_value = reshape(repeat(value, inp_size), inp_shape)
+    elif isinstance(value, (tuple, list)):
+        if size(inp) != size(value):
+            raise ValueError(f'{size(inp)} and {size(value)} does not match')
+        new_value = copy(value)
     elif isinstance(value, Array):
         if size(inp) != size(value):
             raise ValueError(f'{size(inp)} and {size(value)} does not match')
@@ -347,7 +352,6 @@ def setitem(inp: ArrayT, idx: IndexT, value: Union[DataT, ArrayT]):
         else:
             raise ValueError(f'{type(idx)} type is not recognized as index')
         # does not work when not returning
-        return inp
     elif isinstance(inp, Array):
         list_inp = tolist(inp)
         setitem(list_inp, idx, new_value)
@@ -483,133 +487,83 @@ def fill(inp: ArrayT, value: DataT) -> ArrayT:
     shape = size(inp)
     flat_array = flatten(inp)
     for idx in range(len(flat_array)):
-        flat_array = setitem(flat_array, idx, value)
+        setitem(flat_array, idx, value)
     return reshape(flat_array, shape)
 
 
 def absolute(inp: Union[DataT, ArrayT], *, out=None) -> Union[DataT, ArrayT]:
-    if inp.ndim == 0:
-        ret = out or zeros(inp.shape)
-        ret._data = abs(inp.data)
-        return ret
-
-    ret = out or zeros(inp.shape)
-    for idx, _inp in enumerate(inp):
-        ret[idx] = absolute(_inp, out=ret[idx])
-    return ret
+    flat_array = flatten(inp)
+    for idx in range(len(flat_array)):
+        setitem(flat_array, idx, abs(getitem(flat_array, idx)))
+    return reshape(flat_array, size(inp))
 
 
 def negative(inp: Union[DataT, ArrayT], *, out=None) -> Union[DataT, ArrayT]:
-    if inp.ndim == 0:
-        ret = out or zeros(inp.shape)
-        ret._data = -inp.data
-        return ret
-
-    ret = out or zeros(inp.shape)
-    for idx, _inp in enumerate(inp):
-        ret[idx] = negative(_inp, out=ret[idx])
-    return ret
+    flat_array = flatten(inp)
+    for idx in range(len(flat_array)):
+        setitem(flat_array, idx, -getitem(flat_array, idx))
+    return reshape(flat_array, size(inp))
 
 
 def around(inp: Union[DataT, ArrayT], *, out=None) -> Union[DataT, ArrayT]:
-    if inp.ndim == 0:
-        ret = out or zeros(inp.shape)
-        ret._data = round(inp.data)
-        return ret
-
-    ret = out or zeros(inp.shape)
-    for idx, _inp in enumerate(inp):
-        ret[idx] = around(_inp, out=ret[idx])
-    return ret
+    flat_array = flatten(inp)
+    for idx in range(len(flat_array)):
+        setitem(flat_array, idx, round(getitem(flat_array, idx)))
+    return reshape(flat_array, size(inp))
 
 
 def floor(inp: Union[DataT, ArrayT], *, out=None) -> Union[DataT, ArrayT]:
-    if inp.ndim == 0:
-        ret = out or zeros(inp.shape)
-        ret._data = math.floor(inp.data)
-        return ret
-
-    ret = out or zeros(inp.shape)
-    for idx, _inp in enumerate(inp):
-        ret[idx] = floor(_inp, out=ret[idx])
-    return ret
+    flat_array = flatten(inp)
+    for idx in range(len(flat_array)):
+        setitem(flat_array, idx, math.floor(getitem(flat_array, idx)))
+    return reshape(flat_array, size(inp))
 
 
 def ceil(inp: Union[DataT, ArrayT], *, out=None) -> Union[DataT, ArrayT]:
-    if inp.ndim == 0:
-        ret = out or zeros(inp.shape)
-        ret._data = math.ceil(inp.data)
-        return ret
-
-    ret = out or zeros(inp.shape)
-    for idx, _inp in enumerate(inp):
-        ret[idx] = ceil(_inp, out=ret[idx])
-    return ret
+    flat_array = flatten(inp)
+    for idx in range(len(flat_array)):
+        setitem(flat_array, idx, math.ceil(getitem(flat_array, idx)))
+    return reshape(flat_array, size(inp))
 
 
 def sqrt(inp: Union[DataT, ArrayT], *, out=None) -> Union[DataT, ArrayT]:
-    if inp.ndim == 0:
-        ret = out or zeros(inp.shape)
-        ret._data = math.sqrt(inp.data)
-        return ret
-
-    ret = out or zeros(inp.shape)
-    for idx, _inp in enumerate(inp):
-        ret[idx] = sqrt(_inp, out=ret[idx])
-    return ret
+    flat_array = flatten(inp)
+    for idx in range(len(flat_array)):
+        setitem(flat_array, idx, math.sqrt(getitem(flat_array, idx)))
+    return reshape(flat_array, size(inp))
 
 
 def square(inp: Union[DataT, ArrayT], *, out=None) -> Union[DataT, ArrayT]:
-    if inp.ndim == 0:
-        ret = out or zeros(inp.shape)
-        ret._data = inp.data ** 2
-        return ret
-
-    ret = out or zeros(inp.shape)
-    for idx, _inp in enumerate(inp):
-        ret[idx] = square(_inp, out=ret[idx])
-    return ret
+    flat_array = flatten(inp)
+    for idx in range(len(flat_array)):
+        setitem(flat_array, idx, getitem(flat_array, idx) ** 2)
+    return reshape(flat_array, size(inp))
 
 
 def clip(inp: Union[DataT, ArrayT], min_value: DataT, max_value: DataT, *, out=None) -> Union[DataT, ArrayT]:
-    if inp.ndim == 0:
-        ret = out or zeros(inp.shape)
-        value = inp.data
+    flat_array = flatten(inp)
+    for idx in range(len(flat_array)):
+        value = getitem(flat_array, idx)
         if value < min_value:
             value = min_value
         if value > max_value:
             value = max_value
-        ret._data = value
-        return ret
-
-    ret = out or zeros(inp.shape)
-    for idx, _inp in enumerate(inp):
-        ret[idx] = clip(_inp, min_value, max_value, out=ret[idx])
-    return ret
+        setitem(flat_array, idx, value)
+    return reshape(flat_array, size(inp))
 
 
 def exp(inp: Union[DataT, ArrayT], *, out=None) -> Union[DataT, ArrayT]:
-    if inp.ndim == 0:
-        ret = out or zeros(inp.shape)
-        ret._data = math.e ** inp.data
-        return ret
-
-    ret = out or zeros(inp.shape)
-    for idx, _inp in enumerate(inp):
-        ret[idx] = exp(_inp, out=ret[idx])
-    return ret
+    flat_array = flatten(inp)
+    for idx in range(len(flat_array)):
+        setitem(flat_array, idx, math.e ** getitem(flat_array, idx))
+    return reshape(flat_array, size(inp))
 
 
 def tanh(inp: Union[DataT, ArrayT], *, out=None) -> Union[DataT, ArrayT]:
-    if inp.ndim == 0:
-        ret = out or zeros(inp.shape)
-        ret._data = math.tan(inp.data)
-        return ret
-
-    ret = out or zeros(inp.shape)
-    for idx, _inp in enumerate(inp):
-        ret[idx] = tanh(_inp, out=ret[idx])
-    return ret
+    flat_array = flatten(inp)
+    for idx in range(len(flat_array)):
+        setitem(flat_array, idx, math.tanh(getitem(flat_array, idx)))
+    return reshape(flat_array, size(inp))
 
 
 def sum(inp: ArrayT, axis=None) -> Union[DataT, ArrayT]:
