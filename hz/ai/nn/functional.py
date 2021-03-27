@@ -11,11 +11,45 @@ from typing import (
 
 from hz.ai.nn.core import Tensor
 from hz.ai.nn.utility import _calculate_output_dims
+from hz.arr.array import Array
+from hz.arr.data import *
+from hz.arr.shape import Shape
+
+BooleanT = Union[bool, boolean]
+IntegerT = Union[int, integer, int16, int32, int64]
+FloatingT = Union[float, floating, float16, float32, float64]
+NumberT = Union[IntegerT, FloatingT]
+
+DataT = Union[BooleanT, IntegerT, FloatingT]
+ArrayT = Union[Tuple[DataT], List[DataT], Array, Tuple['ArrayT'], List['ArrayT']]
+TensorT = Union[ArrayT, Tuple[Tensor], List[Tensor], Tensor, Tuple['TensorT'], List['TensorT']]
+TypeT = Union[str]
+ShapeT = Union[Tuple[int], List[int], Shape]
+IndexT = Union[int, slice, Tuple[Union[int, slice], ...]]
+
+__all__ = [
+    'is_tensor', 'concat_backward', 'stack_backward', 'chunk_backward', 'view_backward', 'index_select_backward',
+    'squeeze_backward', 'expand_dim_backward', 'transpose_backward', 'absolute_backward', 'around_backward',
+    'floor_backward', 'ceil_backward', 'clip_backward', 'negative_backward', 'summation_backward', 'mean_backward',
+    'std_backward', 'var_backward', 'add_backward', 'sub_backward', 'mul_backward', 'div_backward', 'power_backward',
+    'clone_backward', 'relu_backward', 'sigmoid_backward', 'softmax_backward', 'tanh_backward', 'dense_backward',
+    'conv_backward', 'dropout_backward', 'batch_norm_backward', 'max_pool_backward', 'avg_pool_backward',
+    'rnn_relu_backward', 'rnn_tanh_backward', 'lstm_backward', 'gru_backward', 'rnn_relu_cell_backward',
+    'rnn_tanh_cell_backward', 'lstm_cell_backward', 'gru_cell_backward', 'concat', 'stack', 'chunk', 'view',
+    'index_select', 'zero', 'one', 'fill', 'squeeze', 'expand_dim', 'transpose', 'absolute', 'around', 'floor',
+    'ceil', 'clip', 'negative', 'summation', 'mean', 'std', 'var', 'add', 'sub', 'mul', 'div', 'power', 'clone',
+    'detach', 'arange', 'linspace', 'normal', 'uniform', 'rand', 'randint', 'randn', 'eye', 'empty', 'full', 'zeros',
+    'ones', 'normal_like', 'uniform_like', 'rand_like', 'randint_like', 'randn_like', 'eye_like', 'empty_like',
+    'full_like', 'zeros_like', 'ones_like', 'from_array', 'to_array', 'half', 'single', 'double', 'cpu', 'gpu',
+    'relu', 'sigmoid', 'softmax', 'tanh', 'dense', 'conv', 'dropout', 'batch_norm', 'max_pool', 'avg_pool',
+    'rnn_relu', 'rnn_tanh', 'lstm', 'gru', 'rnn_relu_cell', 'rnn_tanh_cell', 'lstm_cell', 'gru_cell', 'adam'
+]
 
 
 # need to implement inplace
 
 # should have c / c++ codes to use them in functional apis
+
 
 def wrapped_partial(func, *args, **kwargs):
     partial_func = partial(func, *args, **kwargs)
@@ -44,12 +78,26 @@ def _check_tensors(*tensors: Tensor):
 
 
 def _get_engine(*tensors: Union[Tensor, str]):
-    if (isinstance(tensors[0], Tensor) and tensors[0].device == 'gpu') or (isinstance(tensors[0], str) and tensors[0] == 'gpu'):
-        import cupy as cp
-        return cp
+    engine = None
 
-    import numpy as np
-    return np
+    # if (isinstance(tensors[0], Tensor) and tensors[0].device == 'gpu') or (isinstance(tensors[0], str) and tensors[0] == 'gpu'):
+    #     try:
+    #         import cupy as engine
+    #     except ImportError as ex:
+    #         print(f'{ex}')
+    #         engine = None
+    #
+    # if engine is None:
+    #     try:
+    #         import numpy as engine
+    #     except ImportError as ex:
+    #         print(f'{ex}')
+    #         engine = None
+
+    if engine is None:
+        from hz import arr as engine
+
+    return engine
 
 
 def _set_grad(tensor: Tensor, data):
@@ -296,7 +344,7 @@ def tanh_backward(gradient: Tensor, inp: Tensor, out: Tensor):
     _check_tensors(inp)
     engine = _get_engine(inp)
 
-    _set_grad(inp, gradient.data * (1 - engine.square(out)))
+    _set_grad(inp, gradient.data * (1 - engine.square(out.data)))
 
 
 def dense_backward(gradient: Tensor, inp: Tensor, weight: Tensor, bias: Tensor):
@@ -312,7 +360,7 @@ def conv_backward(gradient: Tensor, inp: Tensor, weight: Tensor, bias: Tensor, s
     _check_tensors(inp, weight, bias)
     engine = _get_engine(inp, weight, bias)
 
-    _padded_input_array = engine.pad(array=inp.data, pad_width=((0, 0), (0, 0), (padding[0], padding[0]), (padding[1], padding[1])), mode='constant')
+    _padded_input_array = engine.pad(inp.data, ((0, 0), (0, 0), (padding[0], padding[0]), (padding[1], padding[1])), mode='constant')
     _weight_array = weight.data
     _grad_array = gradient.data
 
@@ -327,13 +375,13 @@ def conv_backward(gradient: Tensor, inp: Tensor, weight: Tensor, bias: Tensor, s
     for _row in range(_output_height):
         for _column in range(_output_width):
             _output_array[:, :, _row * stride:_row * stride + _kernel_height, _column * stride:_column * stride + _kernel_width] += engine.sum(
-                _weight_array[engine.newaxis, :, :, :, :] *
-                _grad_array[:, :, engine.newaxis, _row:_row + 1, _column:_column + 1],
+                _weight_array[None, :, :, :, :] *
+                _grad_array[:, :, None, _row:_row + 1, _column:_column + 1],
                 axis=1
             )
             _weight_grad += engine.sum(
-                _padded_input_array[:, engine.newaxis, :, _row * stride:_row * stride + _kernel_height, _column * stride:_column * stride + _kernel_width] *
-                _grad_array[:, :, engine.newaxis, _row:_row + 1, _column:_column + 1],
+                _padded_input_array[:, None, :, _row * stride:_row * stride + _kernel_height, _column * stride:_column * stride + _kernel_width] *
+                _grad_array[:, :, None, _row:_row + 1, _column:_column + 1],
                 axis=0
             )
 
@@ -390,7 +438,7 @@ def max_pool_backward(gradient: Tensor, inp: Tensor, kernel_size: Union[List[int
     _, _, _output_height, _output_width = grad_array.shape
     _kernel_height, _kernel_width = kernel_size
 
-    _padded_input_array = engine.pad(array=inp.data, pad_width=((0, 0), (0, 0), (padding[0], padding[0]), (padding[1], padding[1])), mode='constant')
+    _padded_input_array = engine.pad(inp.data, ((0, 0), (0, 0), (padding[0], padding[0]), (padding[1], padding[1])), mode='constant')
     _output_array = engine.zeros_like(_padded_input_array)
 
     for _row in range(_output_height):
@@ -410,7 +458,7 @@ def avg_pool_backward(gradient: Tensor, inp: Tensor, kernel_size: Union[List[int
     _, _, _output_height, _output_width = grad_array.shape
     _kernel_height, _kernel_width = kernel_size
 
-    _padded_input_array = engine.pad(array=inp.data, pad_width=((0, 0), (0, 0), (padding[0], padding[0]), (padding[1], padding[1])), mode='constant')
+    _padded_input_array = engine.pad(inp.data, ((0, 0), (0, 0), (padding[0], padding[0]), (padding[1], padding[1])), mode='constant')
     _output_array = engine.zeros_like(_padded_input_array)
 
     for _row in range(_output_height):
@@ -1030,7 +1078,7 @@ def conv(inp, weight, bias, stride, padding) -> 'Tensor':
     _check_tensors(inp, weight, bias)
     engine = _get_engine(inp, weight, bias)
 
-    padded_input_array = engine.pad(array=inp.data, pad_width=((0, 0), (0, 0), (padding[0], padding[0]), (padding[1], padding[1])), mode='constant')
+    padded_input_array = engine.pad(inp.data, ((0, 0), (0, 0), (padding[0], padding[0]), (padding[1], padding[1])), mode='constant')
     weight_array = weight.data
     bias_array = bias.data
 
@@ -1049,8 +1097,8 @@ def conv(inp, weight, bias, stride, padding) -> 'Tensor':
     for row in range(output_height):
         for column in range(output_width):
             output_array[:, :, row, column] = engine.sum(
-                padded_input_array[:, engine.newaxis, :, row * stride:row * stride + kernel_height, column * stride:column * stride + kernel_width] *
-                weight_array[engine.newaxis, :, :, :],
+                padded_input_array[:, None, :, row * stride:row * stride + kernel_height, column * stride:column * stride + kernel_width] *
+                weight_array[None, :, :, :],
                 axis=(2, 3, 4)
             )
 
@@ -1058,7 +1106,7 @@ def conv(inp, weight, bias, stride, padding) -> 'Tensor':
         inp,
         weight,
         bias,
-        data=output_array + bias_array[:, engine.newaxis, engine.newaxis],
+        data=output_array + bias_array[:, None, None],
         func=wrapped_partial(conv_backward, inp=inp, weight=weight, bias=bias, stride=stride, padding=padding)
     )
 
@@ -1161,7 +1209,7 @@ def max_pool(inp, kernel_size, stride, padding) -> 'Tensor':
 
     cache = {}
 
-    padded_input_array = engine.pad(array=inp.data, pad_width=((0, 0), (0, 0), (padding[0], padding[0]), (padding[1], padding[1])), mode='constant')
+    padded_input_array = engine.pad(inp.data, ((0, 0), (0, 0), (padding[0], padding[0]), (padding[1], padding[1])), mode='constant')
 
     _, _, output_height, output_width = _calculate_output_dims(inp.shape, (0, 0, kernel_size[0], kernel_size[1]), padding, stride)
     kernel_height, kernel_width = kernel_size
@@ -1186,7 +1234,7 @@ def avg_pool(inp, kernel_size, stride, padding) -> 'Tensor':
     _check_tensors(inp)
     engine = _get_engine(inp)
 
-    padded_input_array = engine.pad(array=inp.data, pad_width=((0, 0), (0, 0), (padding[0], padding[0]), (padding[1], padding[1])), mode='constant')
+    padded_input_array = engine.pad(inp.data, ((0, 0), (0, 0), (padding[0], padding[0]), (padding[1], padding[1])), mode='constant')
 
     _, _, output_height, output_width = _calculate_output_dims(inp.shape, (0, 0, kernel_size[0], kernel_size[1]), padding, stride)
     kernel_height, kernel_width = kernel_size

@@ -1,18 +1,18 @@
-def rand():
+def rand(shape):
     ...
 
 
-def randint():
+def randint(low, high, shape):
     ...
 
 
-def randn():
+def randn(shape):
     ...
 
 
-def normal():
+def normal(loc, scale, shape):
     ...
 
 
-def uniform():
+def uniform(low, high, shape):
     ...
