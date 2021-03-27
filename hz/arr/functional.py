@@ -10,7 +10,7 @@ from hz.arr.data import *
 from hz.arr.shape import Shape
 
 __all__ = [
-    'absolute', 'add', 'amax', 'amin', 'arange', 'argmax', 'argmin', 'around', 'asarray', 'astype', 'ceil',
+    'absolute', 'add', 'amax', 'maximum', 'amin', 'minimum', 'arange', 'argmax', 'argmin', 'around', 'array', 'asarray', 'astype', 'ceil',
     'clip', 'concatenate', 'copy', 'dim', 'dot', 'empty', 'eq', 'exp', 'expand_dims', 'eye', 'fill', 'flatten',
     'floor', 'floordiv', 'full', 'ge', 'getitem', 'gt', 'indices', 'le', 'linspace', 'lt', 'mean',
     'median', 'mul', 'ne', 'negative', 'ones', 'ones_like', 'pad', 'power', 'prod', 'put_along_axis', 'repeat',
@@ -137,6 +137,10 @@ def _normalize_value(value: DataT) -> DataT:
     return value
 
 
+def array(arr: ArrayT, copy=False) -> ArrayT:
+    return Array(arr)
+
+
 def asarray(arr: ArrayT) -> ArrayT:
     return Array(arr)
 
@@ -168,7 +172,7 @@ def empty(shape) -> Array:
     return Array(ret)
 
 
-def full(shape) -> Array:
+def full(shape, value) -> Array:
     if len(shape) == 0:
         raise ValueError('array shape has to be at least 1-dimensional')
 
@@ -209,11 +213,11 @@ def zeros_like(inp: ArrayT) -> Array:
     return zeros(size(inp))
 
 
-def concatenate(inputs) -> ArrayT:
+def concatenate(inputs, axis=None) -> ArrayT:
     ...
 
 
-def stack(inputs) -> ArrayT:
+def stack(inputs, axis=None) -> ArrayT:
     ...
 
 
@@ -566,7 +570,7 @@ def tanh(inp: Union[DataT, ArrayT], *, out=None) -> Union[DataT, ArrayT]:
     return reshape(flat_array, size(inp))
 
 
-def sum(inp: ArrayT, axis=None) -> Union[DataT, ArrayT]:
+def sum(inp: ArrayT, axis=None, keepdims=False) -> Union[DataT, ArrayT]:
     if axis is None:
         if dim(inp) == 0:
             return astype(copy(inp), 'floating')
@@ -627,7 +631,7 @@ def prod(inp: ArrayT, axis=None) -> int:
     return p
 
 
-def unique(inp: ArrayT) -> ArrayT:
+def unique(inp: ArrayT, return_counts=False) -> ArrayT:
     ...
 
 
@@ -643,7 +647,15 @@ def amax(inp: ArrayT, axis=None) -> Union[DataT, ArrayT]:
     ...
 
 
+def maximum(inp: ArrayT, axis=None) -> Union[DataT, ArrayT]:
+    ...
+
+
 def amin(inp: ArrayT, axis=None) -> Union[DataT, ArrayT]:
+    ...
+
+
+def minimum(inp: ArrayT, axis=None) -> Union[DataT, ArrayT]:
     ...
 
 
