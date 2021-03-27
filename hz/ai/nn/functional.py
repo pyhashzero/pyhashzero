@@ -42,7 +42,7 @@ __all__ = [
     'ones', 'normal_like', 'uniform_like', 'rand_like', 'randint_like', 'randn_like', 'eye_like', 'empty_like',
     'full_like', 'zeros_like', 'ones_like', 'from_array', 'to_array', 'half', 'single', 'double', 'cpu', 'gpu',
     'relu', 'sigmoid', 'softmax', 'tanh', 'dense', 'conv', 'dropout', 'batch_norm', 'max_pool', 'avg_pool',
-    'rnn_relu', 'rnn_tanh', 'lstm', 'gru', 'rnn_relu_cell', 'rnn_tanh_cell', 'lstm_cell', 'gru_cell', 'adam'
+    'rnn_relu', 'rnn_tanh', 'lstm', 'gru', 'rnn_relu_cell', 'rnn_tanh_cell', 'lstm_cell', 'gru_cell', 'adam', 'rmsprop'
 ]
 
 
@@ -80,19 +80,19 @@ def _check_tensors(*tensors: Tensor):
 def _get_engine(*tensors: Union[Tensor, str]):
     engine = None
 
-    # if (isinstance(tensors[0], Tensor) and tensors[0].device == 'gpu') or (isinstance(tensors[0], str) and tensors[0] == 'gpu'):
-    #     try:
-    #         import cupy as engine
-    #     except ImportError as ex:
-    #         print(f'{ex}')
-    #         engine = None
-    #
-    # if engine is None:
-    #     try:
-    #         import numpy as engine
-    #     except ImportError as ex:
-    #         print(f'{ex}')
-    #         engine = None
+    if (isinstance(tensors[0], Tensor) and tensors[0].device == 'gpu') or (isinstance(tensors[0], str) and tensors[0] == 'gpu'):
+        try:
+            import cupy as engine
+        except ImportError as ex:
+            print(f'{ex}')
+            engine = None
+
+    if engine is None:
+        try:
+            import numpy as engine
+        except ImportError as ex:
+            print(f'{ex}')
+            engine = None
 
     if engine is None:
         from hz import arr as engine
@@ -1470,7 +1470,10 @@ def adam(params, grads, exp_avgs, exp_avg_sqs, max_exp_avg_sqs, state_steps, ams
 
         # Decay the first and second moment running average coefficient
         exp_avg._data = exp_avg.data * beta1 + (1 - beta1) * grad.data
-        exp_avg_sq._data = exp_avg_sq.data * beta2 + (1 - beta2) * (grad.data * grad.data)
+        # check if this is true
+        exp_avg_sq._data = exp_avg_sq.data * beta2
+        exp_avg_sq._data = exp_avg_sq.data + (1 - beta2) * (grad.data * grad.data)
+        # exp_avg_sq._data = exp_avg_sq.data * beta2 + (1 - beta2) * (grad.data * grad.data)
         if amsgrad:
             max_exp_avg_sq = max_exp_avg_sqs[i]
             # Maintains the maximum of all 2nd moment running avg. till now
@@ -1483,3 +1486,35 @@ def adam(params, grads, exp_avgs, exp_avg_sqs, max_exp_avg_sqs, state_steps, ams
         step_size = lr / bias_correction1
 
         param._data = param.data - step_size * (exp_avg.data / denom)
+
+
+def rmsprop(params, grads, square_avgs, alphas, momentum_buffers, grad_avgs, momentum, centered, lr, weight_decay, eps):
+    _check_tensors(*params)
+    engine = _get_engine(*params)
+
+    for i, param in enumerate(params):
+        grad = grads[i]
+        square_avg = square_avgs[i]
+        alpha = alphas[i]
+
+        if weight_decay != 0:
+            grad._data = grad.data + param.data * weight_decay
+
+        square_avg._data = square_avg.data * alpha + (1 - alpha) * (grad.data * grad.data)
+
+        if centered:
+            grad_avg = grad_avgs[i]
+            grad_avg._data = grad_avg.data * alpha + grad.data * (1 - alpha)
+            avg = engine.sqrt(square_avg - (grad_avg * grad_avg)) + eps
+        else:
+            avg = engine.sqrt(square_avg) + eps
+
+        if momentum > 0:
+            buf = momentum_buffers[i]
+            # check if this is true
+            buf._data = buf.data * momentum
+            buf._data = buf.data + grad.data / avg
+            # buf._data = buf.data * momentum + grad.data / avg
+            param._data = param.data - lr * buf.data
+        else:
+            param._data = param.data - lr * grad.data / avg

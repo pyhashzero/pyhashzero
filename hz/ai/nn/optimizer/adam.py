@@ -1,10 +1,5 @@
-import numpy as np
-
 from hz.ai.nn import functional as f
-from hz.ai.nn.core import (
-    Optimizer,
-    Tensor
-)
+from hz.ai.nn.core import Optimizer
 
 
 class Adam(Optimizer):
@@ -45,12 +40,12 @@ class Adam(Optimizer):
                     if len(state) == 0:
                         state['step'] = 0
                         # Exponential moving average of gradient values
-                        state['exp_avg'] = Tensor.from_array(np.zeros_like(p.data))
+                        state['exp_avg'] = f.zeros_like(p)
                         # Exponential moving average of squared gradient values
-                        state['exp_avg_sq'] = Tensor.from_array(np.zeros_like(p.data))
+                        state['exp_avg_sq'] = f.zeros_like(p)
                         if group['amsgrad']:
                             # Maintains max of all exp. moving avg. of sq. grad. values
-                            state['max_exp_avg_sq'] = Tensor.from_array(np.zeros_like(p.data))
+                            state['max_exp_avg_sq'] = f.zeros_like(p)
 
                     exp_avgs.append(state['exp_avg'])
                     exp_avg_sqs.append(state['exp_avg_sq'])
