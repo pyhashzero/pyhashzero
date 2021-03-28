@@ -1,6 +1,8 @@
 import ctypes
 import sys
 
+__all__ = ['resolution', 'cursor']
+
 if sys.platform != 'win32':
     raise Exception('The screen module should only be used on a Windows system.')
 

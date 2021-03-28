@@ -7,6 +7,8 @@ from hz.sys.screen import (
     resolution
 )
 
+__all__ = ['Mouse']
+
 if sys.platform != 'win32':
     raise Exception('The mouse module should only be used on a Windows system.')
 

@@ -1,5 +1,7 @@
 import time
 
+__all__ = ['auto_pause']
+
 
 def auto_pause(duration):
     def _wrapper(func):

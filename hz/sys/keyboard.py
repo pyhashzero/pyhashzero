@@ -3,6 +3,8 @@ import sys
 
 from hz.sys.decorators import auto_pause
 
+__all__ = ['Keyboard']
+
 if sys.platform != 'win32':
     raise Exception('The keyboard module should only be used on a Windows system.')
 

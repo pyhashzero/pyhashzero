@@ -3,6 +3,12 @@ import ctypes
 import sys
 from ctypes import wintypes
 
+__all__ = [
+    'RectangleException', 'GetWindowException', 'Window',
+    'get_windows_at', 'get_windows_with_title', 'get_all_titles',
+    'get_all_windows', 'get_window_rect', 'get_active_window', 'get_window_text'
+]
+
 if sys.platform != 'win32':
     raise Exception('The desktop module should only be used on a Windows system.')
 

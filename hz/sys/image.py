@@ -5,6 +5,8 @@ import numpy
 
 from hz.sys.screen import resolution
 
+__all__ = ['grab', 'watermark', 'crop', 'show', 'save', 'match_template']
+
 if sys.platform != 'win32':
     raise Exception('The image module should only be used on a Windows system.')
 
