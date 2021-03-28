@@ -2,6 +2,8 @@ import re
 
 from hz.serializable import Serializable
 
+__all__ = ['Relation']
+
 pattern = re.compile(r"""(?P<collection1>.*?)
                          \.
                          (?P<field1>.*?)

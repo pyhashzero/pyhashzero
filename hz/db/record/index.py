@@ -1,5 +1,7 @@
 from hz.serializable import Serializable
 
+__all__ = ['Index']
+
 
 class Index(Serializable):
     def __init__(self, field_name):

@@ -1,5 +1,7 @@
 from hz.serializable import Serializable
 
+__all__ = ['Constraint','LengthConstraint', 'IntegerValueConstraint', 'UniqueConstraint', 'CustomConstraint']
+
 
 class Constraint(Serializable):
     def __init__(self, field_name, name, validator=None):
@@ -27,12 +29,13 @@ class LengthConstraint(Constraint):
         if min_length is None and max_length is None:
             raise ValueError('at least one of the min_length, max_length has to be provided')
 
-        if min_length is None:
-            validator = lambda x: len(x) <= max_length
-        elif max_length is None:
-            validator = lambda x: min_length <= len(x)
-        else:
-            validator = lambda x: min_length <= len(x) <= max_length
+        def validator(x):
+            if min_length is None:
+                return len(x) <= max_length
+            elif max_length is None:
+                return min_length <= len(x)
+            else:
+                return min_length <= len(x) <= max_length
 
         super(LengthConstraint, self).__init__(field_name, 'length', validator)
 
@@ -45,12 +48,13 @@ class IntegerValueConstraint(Constraint):
         if min_value is None and max_value is None:
             raise ValueError('at least one of the min_value, max_value has to be provided')
 
-        if min_value is None:
-            validator = lambda x: x <= max_value
-        elif max_value is None:
-            validator = lambda x: min_value <= x
-        else:
-            validator = lambda x: min_value <= x <= max_value
+        def validator(x):
+            if min_value is None:
+                return x <= max_value
+            elif max_value is None:
+                return min_value <= x
+            else:
+                return min_value <= x <= max_value
 
         super(IntegerValueConstraint, self).__init__(field_name, 'value', validator)
 

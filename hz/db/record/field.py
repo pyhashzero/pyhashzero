@@ -1,5 +1,7 @@
 from hz.serializable import Serializable
 
+__all__ = ['Field']
+
 
 class Field(Serializable):
     def __init__(self, name, kind, nullable=True, fallback=None):

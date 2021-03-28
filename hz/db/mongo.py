@@ -21,6 +21,8 @@ from ..utility import (
     normalize_kwargs
 )
 
+__all__ = ['MongoTransaction', 'MongoDatabase']
+
 
 class MongoTransaction(Transaction):
     def __init__(self, session):

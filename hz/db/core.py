@@ -1,5 +1,7 @@
 from hz.core import CoreObject
 
+__all__ = ['Transaction', 'Database']
+
 
 class Transaction(CoreObject):
     def __init__(self):
