@@ -1,17 +1,18 @@
+import ctypes
 import random
-from ctypes import (
-    c_buffer,
-    windll
-)
+import sys
+
+if sys.platform != 'win32':
+    raise Exception('The speaker module should only be used on a Windows system.')
 
 
 class MCI:
     def __init__(self):
-        self.w32mci = windll.winmm.mciSendStringA
-        self.w32mcierror = windll.winmm.mciGetErrorStringA
+        self.w32mci = ctypes.windll.winmm.mciSendStringA
+        self.w32mcierror = ctypes.windll.winmm.mciGetErrorStringA
 
     def send(self, command):
-        buffer = c_buffer(255)
+        buffer = ctypes.c_buffer(255)
         errorcode = self.w32mci(str(command).encode(), buffer, 254, 0)
         if errorcode:
             return errorcode, self.get_error(errorcode)
@@ -20,7 +21,7 @@ class MCI:
 
     def get_error(self, error):
         error = int(error)
-        buffer = c_buffer(255)
+        buffer = ctypes.c_buffer(255)
         self.w32mcierror(error, buffer, 254)
         return buffer.value
 

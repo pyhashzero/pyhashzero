@@ -11,7 +11,3 @@ def auto_pause(duration):
         return __wrapper
 
     return _wrapper
-
-
-def as_admin():
-    pass

@@ -1,4 +1,5 @@
 import math
+import sys
 
 import win32com.client
 from win32com.client import constants
@@ -12,6 +13,9 @@ E_REG = {
     MSMARY: (156.63, 1.11),
     MSMIKE: (154.37, 1.11)
 }
+
+if sys.platform != 'win32':
+    raise Exception('The microphone module should only be used on a Windows system.')
 
 
 def to_utf8(value):

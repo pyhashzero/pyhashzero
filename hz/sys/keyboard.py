@@ -1,6 +1,10 @@
 import ctypes
+import sys
 
 from hz.sys.decorators import auto_pause
+
+if sys.platform != 'win32':
+    raise Exception('The keyboard module should only be used on a Windows system.')
 
 
 @auto_pause(duration=0.05)
