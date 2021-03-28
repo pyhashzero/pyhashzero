@@ -1,2 +1,2 @@
-from .avgpool import AvgPool
-from .maxpool import MaxPool
+from .avgpool import *
+from .maxpool import *

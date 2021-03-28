@@ -7,6 +7,8 @@ from ..core import (
     Parameter
 )
 
+__all__ = ['Linear']
+
 
 class Linear(Module):
     __constants__ = ['in_features', 'out_features']

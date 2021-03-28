@@ -1,1 +1,1 @@
-from H0.idman.http.download import Download
+from hz.idm.http.download import Download

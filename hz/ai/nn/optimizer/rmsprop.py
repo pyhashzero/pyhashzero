@@ -1,10 +1,7 @@
-from ..core import Optimizer
-
 from hz.ai.nn import functional as f
-from hz.ai.nn.core import (
-    Optimizer,
-    Tensor
-)
+from hz.ai.nn.core import Optimizer
+
+__all__ = ['RMSprop']
 
 
 class RMSprop(Optimizer):

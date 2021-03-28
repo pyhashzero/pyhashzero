@@ -7,6 +7,8 @@ from ..core import (
     Parameter
 )
 
+__all__ = ['Conv']
+
 
 class Conv(Module):
     def __init__(self, in_features, out_features, kernel_size, stride=1, padding=0):

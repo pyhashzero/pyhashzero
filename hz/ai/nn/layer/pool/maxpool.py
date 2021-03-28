@@ -1,5 +1,7 @@
 from ... import functional as f
 
+__all__ = ['MaxPool']
+
 
 class MaxPool:
     def __init__(self, kernel_size, stride, padding):

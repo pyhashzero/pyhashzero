@@ -15,6 +15,8 @@ from hz.ai.utility import (
     to_tensor
 )
 
+__all__ = ['DQNModel']
+
 
 class DQNModel(CoreModel):
     """

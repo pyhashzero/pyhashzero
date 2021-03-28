@@ -1,6 +1,16 @@
 import collections
 import ctypes
+import sys
 from ctypes import wintypes
+
+__all__ = [
+    'RectangleException', 'GetWindowException', 'Window',
+    'get_windows_at', 'get_windows_with_title', 'get_all_titles',
+    'get_all_windows', 'get_window_rect', 'get_active_window', 'get_window_text'
+]
+
+if sys.platform != 'win32':
+    raise Exception('The desktop module should only be used on a Windows system.')
 
 TOP = 'top'
 BOTTOM = 'bottom'
@@ -23,12 +33,54 @@ SIZE = 'size'
 BOX = 'box'
 AREA = 'area'
 
+SW_MINIMIZE = 6
+SW_MAXIMIZE = 3
+SW_RESTORE = 9
+
+HWND_TOP = 0
+
+WM_CLOSE = 0x0010
+
+NULL = 0
+
+FORMAT_MESSAGE_ALLOCATE_BUFFER = 0x00000100
+FORMAT_MESSAGE_FROM_SYSTEM = 0x00001000
+FORMAT_MESSAGE_IGNORE_INSERTS = 0x00000200
+
+EnumWindows = ctypes.windll.user32.EnumWindows
+EnumWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_int, ctypes.POINTER(ctypes.c_int))
+GetWindowText = ctypes.windll.user32.GetWindowTextW
+GetWindowTextLength = ctypes.windll.user32.GetWindowTextLengthW
+IsWindowVisible = ctypes.windll.user32.IsWindowVisible
+
+Rect = collections.namedtuple('Rect', 'left top right bottom')
 Box = collections.namedtuple('Box', 'left top width height')
+
 Size = collections.namedtuple('Size', 'width height')
 Point = collections.namedtuple('Point', 'x y')
 
 
+class POINT(ctypes.Structure):
+    _fields_ = [
+        ("x", ctypes.c_long),
+        ("y", ctypes.c_long)
+    ]
+
+
+class RECT(ctypes.Structure):
+    _fields_ = [
+        ('left', ctypes.c_long),
+        ('top', ctypes.c_long),
+        ('right', ctypes.c_long),
+        ('bottom', ctypes.c_long)
+    ]
+
+
 class RectangleException(Exception):
+    pass
+
+
+class GetWindowException(Exception):
     pass
 
 
@@ -841,52 +893,6 @@ class Rectangle(object):
             return other.box != self.box
         else:
             raise RectangleException('Rect objects can only be compared with other Rect objects')
-
-
-SW_MINIMIZE = 6
-SW_MAXIMIZE = 3
-SW_RESTORE = 9
-
-HWND_TOP = 0
-
-WM_CLOSE = 0x0010
-
-NULL = 0
-
-FORMAT_MESSAGE_ALLOCATE_BUFFER = 0x00000100
-FORMAT_MESSAGE_FROM_SYSTEM = 0x00001000
-FORMAT_MESSAGE_IGNORE_INSERTS = 0x00000200
-
-EnumWindows = ctypes.windll.user32.EnumWindows
-EnumWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_int, ctypes.POINTER(ctypes.c_int))
-GetWindowText = ctypes.windll.user32.GetWindowTextW
-GetWindowTextLength = ctypes.windll.user32.GetWindowTextLengthW
-IsWindowVisible = ctypes.windll.user32.IsWindowVisible
-
-Rect = collections.namedtuple('Rect', 'left top right bottom')
-
-Size = collections.namedtuple('Size', 'width height')
-Point = collections.namedtuple('Point', 'x y')
-
-
-class POINT(ctypes.Structure):
-    _fields_ = [
-        ("x", ctypes.c_long),
-        ("y", ctypes.c_long)
-    ]
-
-
-class RECT(ctypes.Structure):
-    _fields_ = [
-        ('left', ctypes.c_long),
-        ('top', ctypes.c_long),
-        ('right', ctypes.c_long),
-        ('bottom', ctypes.c_long)
-    ]
-
-
-class GetWindowException(Exception):
-    pass
 
 
 def _format_message(error_code):

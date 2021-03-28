@@ -5,6 +5,8 @@ import numpy as np
 
 from hz.ai.core import CoreEnv
 
+__all__ = ['Puzzle2048']
+
 
 class Puzzle2048(CoreEnv):
     def __init__(self, size):

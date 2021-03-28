@@ -1,6 +1,8 @@
 from ... import functional as f
 from ...core import Module
 
+__all__ = ['Softmax']
+
 
 class Softmax(Module):
     def __init__(self):

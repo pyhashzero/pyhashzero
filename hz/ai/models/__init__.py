@@ -1,2 +1,2 @@
-from .ddpg import DDPGModel
-from .dqn import DQNModel
+from .ddpg import *
+from .dqn import *

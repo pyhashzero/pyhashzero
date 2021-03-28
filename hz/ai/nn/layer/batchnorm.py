@@ -7,6 +7,8 @@ from ..core import (
     Parameter
 )
 
+__all__ = ['BatchNorm']
+
 
 class BatchNorm(Module):
     def __init__(self, features, eps: float = 1e-5, momentum: float = 0.1, affine: bool = True, track_running_stats: bool = True):

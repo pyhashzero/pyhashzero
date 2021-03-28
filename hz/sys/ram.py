@@ -5,8 +5,14 @@ import os
 import platform
 import re
 import struct
+import sys
 import traceback
 from ctypes import wintypes
+
+__all__ = ['Worker', 'Locator', 'Address', 'Process', 'ProcessException']
+
+if sys.platform != 'win32':
+    raise Exception('The ram module should only be used on a Windows system.')
 
 
 def type_unpack(of_type):

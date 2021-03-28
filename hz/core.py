@@ -2,7 +2,7 @@ class CoreObject(object):
     @staticmethod
     def create(cls_name, **kwargs):
         if cls_name == 'mongo':
-            cls_name = 'H0.db.mongo.MongoDatabase'
+            cls_name = 'hz.db.mongo.MongoDatabase'
 
         *module_file, cls = cls_name.split('.')
         module_file = '.'.join(module_file)

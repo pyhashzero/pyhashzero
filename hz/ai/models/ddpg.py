@@ -13,6 +13,8 @@ from hz.ai.utility import (
     to_tensor
 )
 
+__all__ = ['DDPGModel']
+
 
 class DDPGModel(CoreModel):
     """

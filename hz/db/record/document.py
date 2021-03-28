@@ -9,6 +9,8 @@ from .constraint import UniqueConstraint
 from .field import Field
 from .index import Index
 
+__all__ = ['Document']
+
 
 class Document(Serializable):
     CollectionName = None

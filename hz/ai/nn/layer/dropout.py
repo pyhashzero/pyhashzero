@@ -1,5 +1,7 @@
 from .. import functional as f
 
+__all__ = ['Dropout']
+
 
 class Dropout:
     def __init__(self, keep_prob):

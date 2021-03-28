@@ -8,12 +8,9 @@ from distutils.core import setup
 from setuptools import find_packages
 
 extras = {
-    'cache': ['redis'],
     'db': ['pymongo'],
     'idm': ['pycurl'],
     'iva': ['feedparser', 'requests', 'colorama'],
-    'log': [],
-    'mq': ['pika'],
     'sys': ['opencv-python', 'pillow', 'numpy']
 }
 extras['all'] = list(set([item for group in extras.values() for item in group]))
@@ -78,18 +75,11 @@ if __name__ == '__main__':
         classifiers=[
                         'Development Status :: 5 - Production/Stable',
                         'Intended Audience :: Developers',
-                        'Intended Audience :: Education',
-                        'Intended Audience :: Science/Research',
-                        'License :: OSI Approved :: BSD License',
-                        'Topic :: Scientific/Engineering',
-                        'Topic :: Scientific/Engineering :: Mathematics',
-                        'Topic :: Scientific/Engineering :: Artificial Intelligence',
                         'Topic :: Software Development',
                         'Topic :: Software Development :: Libraries',
                         'Topic :: Software Development :: Libraries :: Python Modules',
-                        'Programming Language :: C++',
                         'Programming Language :: Python :: 3',
                     ] + ['Programming Language :: Python :: 3.{}'.format(i) for i in range(python_min_version[1], version_range_max)],
         license='MIT',
-        keywords='pyhashzero machine-learning intelligent-virtual-assistant',
+        keywords='pyhashzero ndarray machine-learning intelligent-virtual-assistant internet-download-manager automation',
     )

@@ -1,9 +1,9 @@
 from gym.envs.registration import register
 
-from .cube import CubeEnv
-from .puzzle import Puzzle2048
-from .sokoban import SokobanEnv
-from .tiles import TilesEnv
+from .cube import *
+from .puzzle import *
+from .sokoban import *
+from .tiles import *
 
 register(
     'Sokoban-v0',
