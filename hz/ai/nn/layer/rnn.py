@@ -17,6 +17,8 @@ from ..core import (
     Tensor
 )
 
+__all__ = ['RNN', 'LSTM', 'GRU', 'RNNCell', 'LSTMCell', 'GRUCell']
+
 
 # multilayer and multitime rnn grads does not work
 class RNNBase(Module):

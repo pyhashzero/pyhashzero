@@ -1,5 +1,7 @@
 from ... import functional as f
 
+__all__ = ['AvgPool']
+
 
 class AvgPool:
     def __init__(self, kernel_size, stride, padding):

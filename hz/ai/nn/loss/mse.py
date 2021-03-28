@@ -2,6 +2,8 @@ import numpy as np
 
 from hz.ai.nn.core import Loss
 
+__all__ = ['MSELoss']
+
 
 class MSELoss(Loss):
     def __init__(self):

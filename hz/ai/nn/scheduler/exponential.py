@@ -5,6 +5,8 @@ from hz.ai.nn.core import (
     Optimizer
 )
 
+__all__ = ['ExponentialLR']
+
 
 class ExponentialLR(LRScheduler):
     """Decays the learning rate of each parameter group by gamma every epoch.

@@ -1,6 +1,8 @@
 from ... import functional as f
 from ...core import Module
 
+__all__ = ['TanH']
+
 
 class TanH(Module):
     def __init__(self):
