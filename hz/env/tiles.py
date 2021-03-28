@@ -2,6 +2,8 @@ import random
 
 from hz.ai.core import CoreEnv
 
+__all__ = ['TilesEnv']
+
 
 class TilesEnv(CoreEnv):
     def __init__(self, size):

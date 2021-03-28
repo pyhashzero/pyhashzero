@@ -13,6 +13,8 @@ import numpy as np
 import pygame
 from pygame.color import THECOLORS
 
+__all__ = ['Board']
+
 
 def arrow(screen, color, start, end, thickness):
     pygame.draw.line(

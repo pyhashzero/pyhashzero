@@ -12,6 +12,8 @@ from pymunk.vec2d import Vec2d
 
 from hz.ai.core import CoreEnv
 
+__all__ = ['SokobanEnv']
+
 TYPE_LOOKUP = {
     0: 'wall',
     1: 'empty space',

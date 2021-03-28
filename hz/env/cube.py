@@ -4,6 +4,8 @@ import pygame
 
 from hz.ai.core import CoreEnv
 
+__all__ = ['CubeEnv']
+
 cube_colors = ['blue', 'red', 'yellow', 'green', 'orange', 'white']
 cube_colors = list(map(lambda x: pygame.color.THECOLORS[x], cube_colors))
 
